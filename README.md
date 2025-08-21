@@ -1,5 +1,6 @@
 # 文颜 MCP Server
 
+[![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/caol64/wenyan-mcp)](https://archestra.ai/mcp-catalog/caol64__wenyan-mcp)
 ![logo](data/wenyan-mcp.png)
 
 ## Overview
