@@ -36,6 +36,7 @@
     "test": "pnpx vitest run",
     "prepublishOnly": "pnpm build"
   },
+  "packageManager": "pnpm@10.7.1",
   "dependencies": {
     "@modelcontextprotocol/sdk": "0.6.0",
     "@wenyan-md/core": "^1.0.11"
