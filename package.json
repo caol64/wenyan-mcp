@@ -1,6 +1,6 @@
 {
   "name": "@wenyan-md/mcp",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "MCP server for Wenyan, a Markdown formatting tool that allows AI assistants to apply elegant built-in themes and publish articles directly to 微信公众号.",
   "author": "Lei <caol64@gmail.com> (https://github.com/caol64)",
   "license": "Apache-2.0",
@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "0.6.0",
-    "@wenyan-md/core": "^1.0.9"
+    "@wenyan-md/core": "^1.0.11"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
