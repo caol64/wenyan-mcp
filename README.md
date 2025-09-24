@@ -1,5 +1,6 @@
 # 文颜 MCP Server
 
+[![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/caol64/wenyan-mcp)](https://archestra.ai/mcp-catalog/caol64__wenyan-mcp)
 ![logo](data/wenyan-mcp.png)
 
 「文颜」是一款多平台排版美化工具，让你将 Markdown 一键发布至微信公众号、知乎、今日头条等主流写作平台。
