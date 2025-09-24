@@ -8,7 +8,7 @@ yarn-error.log
 dist
 data
 test
-*.tsbuildinfo
+**/*.tsbuildinfo
 build
 
 # Testing
