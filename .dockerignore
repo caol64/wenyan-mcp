@@ -6,6 +6,7 @@ yarn-error.log
 
 # Build outputs
 dist
+data
 build
 *.tsbuildinfo
 
@@ -55,7 +56,6 @@ pids
 # Temporary files
 tmp
 temp
-data
 
 # Documentation
 README.md
