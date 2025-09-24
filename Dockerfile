@@ -1,14 +1,29 @@
-FROM node:22-alpine
+# Build stage
+FROM node:22-alpine AS builder
+
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+WORKDIR /app
+
+# Configure registry and install dependencies
+RUN npm config set registry ${NPM_REGISTRY}
+
+# Copy package files first for better caching
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm@10.7.1 && pnpm install --frozen-lockfile
+
+# Copy source and build
+COPY tsconfig.json ./
+COPY src ./src
+RUN npx tsc
+
+# Production stage
+FROM node:22-alpine AS production
 
 WORKDIR /app
 
-ARG NPM_REGISTRY=https://registry.npmjs.org/
-RUN npm config set registry ${NPM_REGISTRY}
+# Copy only necessary files from builder
+COPY --from=builder /app/node_modules ./node_modules/
+COPY --from=builder /app/dist ./dist/
 
-COPY package.json ./
-COPY tsconfig.json ./
-COPY src ./src
-RUN npm install --production
-RUN npm install typescript
-RUN npx tsc
+# Set the entrypoint
 CMD ["node", "dist/index.js"]
