@@ -8,8 +8,8 @@ yarn-error.log
 dist
 data
 test
-build
 *.tsbuildinfo
+build
 
 # Testing
 coverage
