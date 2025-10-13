@@ -1,6 +1,11 @@
+![logo](data/wenyan-mcp.png)
+
 # 文颜 MCP Server
 
-![logo](data/wenyan-mcp.png)
+[![npm](https://img.shields.io/npm/v/@wenyan-md/mcp)](https://www.npmjs.com/package/@wenyan-md/mcp)
+[![License](https://img.shields.io/github/license/caol64/wenyan-mcp)](LICENSE)
+![NPM Downloads](https://img.shields.io/npm/dm/%40wenyan-md%2Fmcp)
+[![Stars](https://img.shields.io/github/stars/caol64/wenyan-mcp?style=social)](https://github.com/caol64/wenyan-mcp)
 
 「文颜」是一款多平台排版美化工具，让你将 Markdown 一键发布至微信公众号、知乎、今日头条等主流写作平台。
 
