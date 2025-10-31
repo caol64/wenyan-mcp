@@ -5,6 +5,7 @@
 [![npm](https://img.shields.io/npm/v/@wenyan-md/mcp)](https://www.npmjs.com/package/@wenyan-md/mcp)
 [![License](https://img.shields.io/github/license/caol64/wenyan-mcp)](LICENSE)
 ![NPM Downloads](https://img.shields.io/npm/dm/%40wenyan-md%2Fmcp)
+[![Docker Pulls](https://img.shields.io/docker/pulls/caol64/wenyan-mcp)](https://hub.docker.com/r/caol64/wenyan-mcp)
 [![Stars](https://img.shields.io/github/stars/caol64/wenyan-mcp?style=social)](https://github.com/caol64/wenyan-mcp)
 
 「文颜」是一款多平台排版美化工具，让你将 Markdown 一键发布至微信公众号、知乎、今日头条等主流写作平台。
@@ -127,15 +128,17 @@ npx tsc -b
 
 适合部署到服务器环境，或与本地 AI 工具链集成。
 
-#### 构建镜像
+#### 你可以直接下载编译好的docker镜像
+
+```bash
+docker pull caol64/wenyan-mcp
+```
+
+#### 或者自己构建镜像
 
 ```bash
 docker build -t wenyan-mcp .
-```
-
-或者指定`npm`镜像源。
-
-```bash
+# 国内用户可以指定`npm`镜像源。
 docker build --build-arg NPM_REGISTRY=https://mirrors.cloud.tencent.com/npm/ -t wenyan-mcp .
 ```
 
