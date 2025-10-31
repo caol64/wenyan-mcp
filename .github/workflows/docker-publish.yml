@@ -2,8 +2,6 @@ name: Build and Publish Docker image
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -41,10 +39,10 @@ jobs:
         with:
           images: caol64/wenyan-mcp
           tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=sha
-            type=raw,value=latest,enable={{is_tag}}
+            type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
 
       - name: Build and push multi-arch Docker image
         uses: docker/build-push-action@v6
