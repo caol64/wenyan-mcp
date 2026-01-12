@@ -39,7 +39,10 @@
 -   使用内置主题对 Markdown 内容排版
 -   自动处理并上传图片（本地 / 网络）
 -   一键发布文章到微信公众号草稿箱
--   **与 AI 深度集成**：让 AI 帮你管理公众号的排版和发布
+-   **与 AI 深度集成**：[让 AI 帮你管理公众号的排版和发布](https://babyno.top/posts/2025/06/let-ai-help-you-manage-your-gzh-layout-and-publishing/)
+
+<video src="https://github.com/user-attachments/assets/2c355f76-f313-48a7-9c31-f0f69e5ec207"></video>
+
 
 ## 主题效果预览
 
