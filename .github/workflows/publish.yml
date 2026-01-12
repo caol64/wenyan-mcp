@@ -1,13 +1,11 @@
 name: Build and Publish to npm
 
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [created]
 
 permissions:
   id-token: write
-  contents: read
 
 jobs:
   npm-publish:

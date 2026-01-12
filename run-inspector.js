@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import { exec } from 'child_process';
-import { fileURLToPath } from 'url';
+import fs from "node:fs";
+import path from "node:path";
+import { exec } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 // --- ESM boilerplate for __dirname ---
 const __filename = fileURLToPath(import.meta.url);

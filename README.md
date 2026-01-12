@@ -1,4 +1,6 @@
-![logo](data/wenyan-mcp.png)
+<div align="center">
+    <img alt = "logo" src="https://media.githubusercontent.com/media/caol64/wenyan-mcp/main/data/wenyan-mcp.png" />
+</div>
 
 # 文颜 MCP Server
 
@@ -8,54 +10,64 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/caol64/wenyan-mcp)](https://hub.docker.com/r/caol64/wenyan-mcp)
 [![Stars](https://img.shields.io/github/stars/caol64/wenyan-mcp?style=social)](https://github.com/caol64/wenyan-mcp)
 
-「文颜」是一款多平台排版美化工具，让你将 Markdown 一键发布至微信公众号、知乎、今日头条等主流写作平台。
+## 简介
 
-**文颜**现已推出多个版本：
+**文颜（Wenyan）** 是一款多平台 Markdown 排版与发布工具，支持将 Markdown 一键转换并发布至：
 
-* [macOS App Store 版](https://github.com/caol64/wenyan) - MAC 桌面应用
-* [跨平台版本](https://github.com/caol64/wenyan-pc) - Windows/Linux 跨平台桌面应用
-* [CLI 版本](https://github.com/caol64/wenyan-cli) - CI/CD 或脚本自动化发布公众号文章
-* [MCP 版本](https://github.com/caol64/wenyan-mcp) - 让 AI 自动发布公众号文章
-* [嵌入版本](https://github.com/caol64/wenyan-core) - 将文颜的核心功能嵌入 Node 或者 Web 项目
+-   微信公众号
+-   知乎
+-   今日头条
+-   以及其它内容平台（持续扩展中）
 
-文颜 MCP Server 是一个基于模型上下文协议（Model Context Protocol, MCP）的服务器组件，支持将 Markdown 格式的文章发布至微信公众号草稿箱，并使用与 [文颜](https://yuzhi.tech/wenyan) 相同的主题系统进行排版。
+文颜的目标是：**让写作者专注内容，而不是排版和平台适配**。
 
-https://github.com/user-attachments/assets/2c355f76-f313-48a7-9c31-f0f69e5ec207
+本仓库是 **文颜的 MCP Server 版本**，基于模型上下文协议（Model Context Protocol），旨在让 AI 助手（如 Claude Desktop）具备自动排版和发布公众号文章的能力。
 
-使用场景：
+## 文颜的不同版本
 
-- [让AI帮你管理公众号的排版和发布](https://babyno.top/posts/2025/06/let-ai-help-you-manage-your-gzh-layout-and-publishing/)
+文颜目前提供多种形态，覆盖不同使用场景：
 
-## 功能
+-   [macOS App Store 版](https://github.com/caol64/wenyan) - MAC 桌面应用
+-   [跨平台桌面版](https://github.com/caol64/wenyan-pc) - Windows/Linux
+-   [CLI 版本](https://github.com/caol64/wenyan-cli) - 命令行工具
+-   👉 [MCP 版本](https://github.com/caol64/wenyan-mcp) - 本项目
+-   [核心库](https://github.com/caol64/wenyan-core) - 嵌入 Node / Web 项目
 
-- 列出并选择支持的文章主题
-- 使用内置主题对 Markdown 内容排版
-- 发布文章到微信公众号草稿箱
-- 自动上传本地或网络图片
+## 功能特性
 
-## 主题效果
+-   列出并选择支持的文章主题
+-   使用内置主题对 Markdown 内容排版
+-   自动处理并上传图片（本地 / 网络）
+-   一键发布文章到微信公众号草稿箱
+-   **与 AI 深度集成**：让 AI 帮你管理公众号的排版和发布
+
+## 主题效果预览
 
 👉 [内置主题预览](https://yuzhi.tech/docs/wenyan/theme)
 
-文颜采用了多个开源的 Typora 主题，在此向各位作者表示感谢：
+文颜内置并适配了多个优秀的 Typora 主题，在此感谢原作者：
 
-- [Orange Heart](https://github.com/evgo2017/typora-theme-orange-heart)
-- [Rainbow](https://github.com/thezbm/typora-theme-rainbow)
-- [Lapis](https://github.com/YiNNx/typora-theme-lapis)
-- [Pie](https://github.com/kevinzhao2233/typora-theme-pie)
-- [Maize](https://github.com/BEATREE/typora-maize-theme)
-- [Purple](https://github.com/hliu202/typora-purple-theme)
-- [物理猫-薄荷](https://github.com/sumruler/typora-theme-phycat)
+-   [Orange Heart](https://github.com/evgo2017/typora-theme-orange-heart)
+-   [Rainbow](https://github.com/thezbm/typora-theme-rainbow)
+-   [Lapis](https://github.com/YiNNx/typora-theme-lapis)
+-   [Pie](https://github.com/kevinzhao2233/typora-theme-pie)
+-   [Maize](https://github.com/BEATREE/typora-maize-theme)
+-   [Purple](https://github.com/hliu202/typora-purple-theme)
+-   [物理猫-薄荷](https://github.com/sumruler/typora-theme-phycat)
 
-## 使用方式
+## 安装与集成
 
-### 方式一：本地安装（推荐）
+文颜 MCP Server 支持多种运行方式，请根据你的环境选择。
 
-```
+### 方式一：npm 安装（推荐）
+
+直接安装到本地：
+
+```bash
 npm install -g @wenyan-md/mcp
 ```
 
-#### 与 MCP Client 集成
+**配置 MCP Client（如 Claude Desktop）：**
 
 在你的 MCP 配置文件中加入以下内容：
 
@@ -74,77 +86,17 @@ npm install -g @wenyan-md/mcp
 }
 ```
 
-> 说明：
->
-> * `WECHAT_APP_ID` 微信公众号平台的 App ID
-> * `WECHAT_APP_SECRET` 微信平台的 App Secret
+### 方式二：Docker 运行（推荐）
 
----
+适合部署到服务器环境，或希望环境隔离的用户。
 
-### 方式二：编译运行
-
-#### 编译
-
-确保已安装 [Node.js](https://nodejs.org/) 环境：
-
-```bash
-git clone https://github.com/caol64/wenyan-mcp.git
-cd wenyan-mcp
-
-npm install
-npx tsc -b
-```
-
-#### 与 MCP Client 集成
-
-在你的 MCP 配置文件中加入以下内容：
-
-```json
-{
-  "mcpServers": {
-    "wenyan-mcp": {
-      "name": "公众号助手",
-      "command": "node",
-      "args": [
-        "Your/path/to/wenyan-mcp/dist/index.js"
-      ],
-      "env": {
-        "WECHAT_APP_ID": "your_app_id",
-        "WECHAT_APP_SECRET": "your_app_secret"
-      }
-    }
-  }
-}
-```
-
-> 说明：
->
-> * `WECHAT_APP_ID` 微信公众号平台的 App ID
-> * `WECHAT_APP_SECRET` 微信平台的 App Secret
-
----
-
-### 方式三：使用 Docker 运行（推荐）
-
-适合部署到服务器环境，或与本地 AI 工具链集成。
-
-#### 你可以直接下载编译好的docker镜像
+**拉取镜像：**
 
 ```bash
 docker pull caol64/wenyan-mcp
 ```
 
-#### 或者自己构建镜像
-
-```bash
-docker build -t wenyan-mcp .
-# 国内用户可以指定`npm`镜像源。
-docker build --build-arg NPM_REGISTRY=https://mirrors.cloud.tencent.com/npm/ -t wenyan-mcp .
-```
-
-#### 与 MCP Client 集成
-
-在你的 MCP 配置文件中加入以下内容：
+**配置 MCP Client：**
 
 ```json
 {
@@ -156,53 +108,63 @@ docker build --build-arg NPM_REGISTRY=https://mirrors.cloud.tencent.com/npm/ -t 
         "run",
         "--rm",
         "-i",
-        "-v", "/your/host/image/path:/mnt/host-downloads",
+        "-v", "/your/host/file/path:/mnt/host-downloads",
         "-e", "WECHAT_APP_ID=your_app_id",
         "-e", "WECHAT_APP_SECRET=your_app_secret",
-        "-e", "HOST_IMAGE_PATH=/your/host/image/path",
-        "wenyan-mcp"
+        "-e", "HOST_FILE_PATH=/your/host/file/path",
+        "caol64/wenyan-mcp"
       ]
     }
   }
 }
 ```
 
-> 说明：
+> **Docker 配置特别说明：**
 >
-> * `-v` 挂载宿主机目录，使容器内部可以访问本地图片。与环境变量`HOST_IMAGE_PATH`保持一致。你的 `Markdown` 文章内的本地图片应该都放置在该目录中，docker会自动将它们映射到容器内。容器无法读取在该目录以外的图片。
-> * `-e` 注入docker容器的环境变量：
-> * `WECHAT_APP_ID` 微信公众号平台的 App ID
-> * `WECHAT_APP_SECRET` 微信平台的 App Secret
-> * `HOST_IMAGE_PATH` 宿主机图片目录
+> *   **挂载目录 (`-v`)**：必须将宿主机的文件/图片目录挂载到容器内的 `/mnt/host-downloads`。
+> *   **环境变量 (`HOST_FILE_PATH`)**：必须与宿主机挂载的文件/图片目录路径保持一致。
+> *   **原理**：你的 Markdown 文件/文章内所引用的本地图片应放置在该目录中，Docker 会自动将其映射，使容器能够读取并上传。
 
-## 微信公众号 IP 白名单
+## 环境变量说明
 
-请务必将服务器 IP 加入公众号平台的 IP 白名单，以确保上传接口调用成功。
-详细配置说明请参考：[https://yuzhi.tech/docs/wenyan/upload](https://yuzhi.tech/docs/wenyan/upload)
+无论使用哪种方式，都需要配置以下环境变量以连接微信公众号平台：
 
-## 配置说明（Frontmatter）
+-   `WECHAT_APP_ID`：微信公众号平台的 App ID
+-   `WECHAT_APP_SECRET`：微信公众号平台的 App Secret
 
-为了可以正确上传文章，需要在每一篇 Markdown 文章的开头添加一段`frontmatter`，提供`title`、`cover`两个字段：
+## Markdown Frontmatter 说明（必读）
+
+为了正确上传文章，每篇 Markdown 顶部需要包含 frontmatter：
 
 ```md
 ---
 title: 在本地跑一个大语言模型(2) - 给模型提供外部知识库
-cover: /Users/lei/Downloads/result_image.jpg
+cover: /Users/xxx/image.jpg
 ---
 ```
 
-* `title` 是文章标题，必填。
-* `cover` 是文章封面，支持本地路径和网络图片：
+字段说明：
 
-  * 如果正文有至少一张图片，可省略，此时将使用其中一张作为封面；
-  * 如果正文无图片，则必须提供 cover。
+-   `title` 文章标题（必填）
+-   `cover` 文章封面
+    -   本地路径或网络图片
+    -   如果正文有至少一张图片，可省略，此时将使用其中一张作为封面
+    -   如果正文无图片，则必须提供 cover
 
 ## 关于图片自动上传
 
-* 支持图片路径：
+支持以下图片来源：
 
-  * 本地路径（如：`/Users/lei/Downloads/result_image.jpg`）
-  * 网络路径（如：`https://example.com/image.jpg`）
+-   本地路径（如：`/Users/lei/Downloads/result_image.jpg`）
+-   网络路径（如：`https://example.com/image.jpg`）
+
+## 微信公众号 IP 白名单
+
+> ⚠️ 重要
+>
+> 请确保运行文颜 MCP Server 的机器 IP 已加入微信公众号后台的 IP 白名单，否则上传接口将调用失败。
+
+配置说明文档：[https://yuzhi.tech/docs/wenyan/upload](https://yuzhi.tech/docs/wenyan/upload)
 
 ## 示例文章格式
 
@@ -223,15 +185,15 @@ cover: /Users/lei/Downloads/result_image.jpg
 
 ## 如何调试
 
-使用 Inspector 进行简单调试：
+推荐使用官方 Inspector 进行调试：
 
-```
-npx @modelcontextprotocol/inspector
+```bash
+npx @modelcontextprotocol/inspector <command>
 ```
 
 启动成功出现类似提示：
 
-```
+```bash
 🔗 Open inspector with token pre-filled:
    http://localhost:6274/?MCP_PROXY_AUTH_TOKEN=761c05058aa4f84ad02280e62d7a7e52ec0430d00c4c7a61492cca59f9eac299
    (Auto-open is disabled when authentication is enabled)
@@ -251,7 +213,9 @@ npx @modelcontextprotocol/inspector
 
 ## 赞助
 
-如果您觉得这个项目不错，可以给我家猫咪买点罐头吃。[喂猫❤️](https://yuzhi.tech/sponsor)
+如果你觉得文颜对你有帮助，可以给我家猫咪买点罐头 ❤️
+
+[https://yuzhi.tech/sponsor](https://yuzhi.tech/sponsor)
 
 ## License
 

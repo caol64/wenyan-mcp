@@ -1,6 +1,6 @@
 {
   "name": "@wenyan-md/mcp",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "MCP server for Wenyan, a Markdown formatting tool that allows AI assistants to apply elegant built-in themes and publish articles directly to 微信公众号.",
   "author": "Lei <caol64@gmail.com> (https://github.com/caol64)",
   "license": "Apache-2.0",
@@ -32,7 +32,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "inspector": "pnpm build && node ./run-inspector.js",
+    "inspector": "pnpm build && pnpm dotenv -e .env.test -- node ./run-inspector.js",
     "test": "pnpx vitest run",
     "upgrade:core": "pnpm update @wenyan-md/core",
     "prepublishOnly": "pnpm build && pnpm upgrade:core"
@@ -40,11 +40,12 @@
   "packageManager": "pnpm@10.7.1",
   "dependencies": {
     "@modelcontextprotocol/sdk": "0.6.0",
-    "@wenyan-md/core": "^1.0.14"
+    "@wenyan-md/core": "^1.0.17"
   },
   "devDependencies": {
-    "@types/node": "^20.11.24",
-    "typescript": "^5.3.3",
-    "vitest": "^3.2.3"
+    "@types/node": "^24.3.0",
+    "dotenv-cli": "^10.0.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }
