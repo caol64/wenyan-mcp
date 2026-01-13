@@ -7,8 +7,6 @@ ENV CONTAINER_FILE_PATH=/mnt/host-downloads
 WORKDIR /app
 
 RUN npm config set registry ${NPM_REGISTRY}
-RUN npm install -g @wenyan-md/cli && npm cache clean --force
+RUN npm install -g @wenyan-md/mcp && npm cache clean --force
 
-ENTRYPOINT ["wenyan"]
-
-CMD ["--help"]
+ENTRYPOINT ["wenyan-mcp"]
