@@ -11,13 +11,13 @@
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-    CallToolRequestSchema,
-    ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { getGzhContent } from "@wenyan-md/core/wrapper";
 import { publishToDraft } from "@wenyan-md/core/publish";
 import { themes, Theme } from "@wenyan-md/core/theme";
+import { getNormalizeFilePath } from "./utils.js";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 /**
  * Create an MCP server with capabilities for resources (to list/read notes),
@@ -47,14 +47,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         tools: [
             {
                 name: "publish_article",
-                description:
-                    "Format a Markdown article using a selected theme and publish it to '微信公众号'.",
+                description: "Format a Markdown article using a selected theme and publish it to '微信公众号'.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         content: {
                             type: "string",
-                            description: "The original Markdown content to publish, preserving its frontmatter (if present).",
+                            description:
+                                "The Markdown text to publish. REQUIRED if 'file' is not provided. Preserves frontmatter if present.",
+                        },
+                        file: {
+                            type: "string",
+                            description:
+                                "The path to the Markdown file (absolute or relative). REQUIRED if 'content' is not provided.",
                         },
                         theme_id: {
                             type: "string",
@@ -62,7 +67,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                                 "ID of the theme to use (e.g., default, orangeheart, rainbow, lapis, pie, maize, purple, phycat).",
                         },
                     },
-                    required: ["content"],
+                    anyOf: [{ required: ["content"] }, { required: ["file"] }],
                 },
             },
             {
@@ -71,7 +76,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     "List the themes compatible with the 'publish_article' tool to publish an article to '微信公众号'.",
                 inputSchema: {
                     type: "object",
-                    properties: {}
+                    properties: {},
                 },
             },
         ],
@@ -88,12 +93,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         //     level: "debug",
         //     data: JSON.stringify(request.params.arguments),
         // });
-        const content = String(request.params.arguments?.content || "");
+        let content = String(request.params.arguments?.content || "");
+        const file = String(request.params.arguments?.file || "");
         const themeId = String(request.params.arguments?.theme_id || "");
+        let absoluteDirPath: string | undefined = undefined;
+        if (!content && file) {
+            const normalizePath = getNormalizeFilePath(file);
+            content = await fs.readFile(normalizePath, "utf-8");
+            absoluteDirPath = path.dirname(normalizePath);
+        }
+        if (!content) {
+            throw new Error("Missing content to publish");
+        }
         const gzhContent = await getGzhContent(content, themeId, "solarized-light", true, true);
-        const title = gzhContent.title ?? "this is title";
-        const cover = gzhContent.cover ?? "";
-        const response = await publishToDraft(title, gzhContent.content, cover);
+        if (!gzhContent.title) {
+            throw new Error("未能找到文章标题");
+        }
+        if (!gzhContent.cover) {
+            throw new Error("未能找到文章封面");
+        }
+        const response = await publishToDraft(gzhContent.title, gzhContent.content, gzhContent.cover, {
+            relativePath: absoluteDirPath,
+        });
 
         return {
             content: [
@@ -109,7 +130,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: JSON.stringify({
                 id: theme.id,
                 name: theme.name,
-                description: theme.description
+                description: theme.description,
             }),
         }));
         return {
@@ -119,7 +140,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     throw new Error("Unknown tool");
 });
-
 
 /**
  * Start the server using stdio transport.

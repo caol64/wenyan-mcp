@@ -13,22 +13,18 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
-
-      # Ensure npm 11.5.1 or later is installed
-      - name: Update npm
-        run: npm install -g npm@latest
+        uses: actions/checkout@v6
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
-          run_install: true
+          node-version: '24'
+          cache: 'pnpm'
 
       - name: Publish to npm
-        run: pnpm publish --access public --no-git-checks
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm publish --access public --no-git-checks

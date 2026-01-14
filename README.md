@@ -29,7 +29,7 @@
 
 -   [macOS App Store 版](https://github.com/caol64/wenyan) - MAC 桌面应用
 -   [跨平台桌面版](https://github.com/caol64/wenyan-pc) - Windows/Linux
--   [CLI 版本](https://github.com/caol64/wenyan-cli) - 命令行工具
+-   [CLI 版本](https://github.com/caol64/wenyan-cli) - 命令行 / CI 自动化发布
 -   👉 [MCP 版本](https://github.com/caol64/wenyan-mcp) - 本项目
 -   [核心库](https://github.com/caol64/wenyan-core) - 嵌入 Node / Web 项目
 
@@ -43,6 +43,9 @@
 
 <video src="https://github.com/user-attachments/assets/2c355f76-f313-48a7-9c31-f0f69e5ec207"></video>
 
+> [!TIP]
+>
+> 如果与 AI 集成遇到问题，可以参考 [test/list.js](./test/list.js) 和 [test/publish.js](./test/publish.js) 中的完整调用示例。
 
 ## 主题效果预览
 
@@ -163,7 +166,7 @@ cover: /Users/xxx/image.jpg
 
 ## 微信公众号 IP 白名单
 
-> ⚠️ 重要
+> [!IMPORTANT]
 >
 > 请确保运行文颜 MCP Server 的机器 IP 已加入微信公众号后台的 IP 白名单，否则上传接口将调用失败。
 
