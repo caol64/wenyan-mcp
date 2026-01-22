@@ -67,7 +67,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                                 "ID of the theme to use (e.g., default, orangeheart, rainbow, lapis, pie, maize, purple, phycat).",
                         },
                     },
-                    anyOf: [{ required: ["content"] }, { required: ["file"] }],
                 },
             },
             {
@@ -93,24 +92,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         //     level: "debug",
         //     data: JSON.stringify(request.params.arguments),
         // });
-        let content = String(request.params.arguments?.content || "");
-        const file = String(request.params.arguments?.file || "");
+        const contentArg = request.params.arguments?.content;
+        const fileArg = request.params.arguments?.file;
+        if (!contentArg && !fileArg) {
+            throw new Error("You must provide either 'content' or 'file' to publish an article.");
+        }
+        let content = String(contentArg || "");
+        const file = String(fileArg || "");
         const themeId = String(request.params.arguments?.theme_id || "");
-        let absoluteDirPath: string | undefined = undefined;
+        let absoluteDirPath: string | undefined;
         if (!content && file) {
             const normalizePath = getNormalizeFilePath(file);
             content = await fs.readFile(normalizePath, "utf-8");
+            if (!content) {
+                throw new Error("Can't read content from the specified file.");
+            }
             absoluteDirPath = path.dirname(normalizePath);
-        }
-        if (!content) {
-            throw new Error("Missing content to publish");
         }
         const gzhContent = await getGzhContent(content, themeId, "solarized-light", true, true);
         if (!gzhContent.title) {
-            throw new Error("未能找到文章标题");
+            throw new Error("Can't extract a valid title from the frontmatter.");
         }
         if (!gzhContent.cover) {
-            throw new Error("未能找到文章封面");
+            throw new Error("Can't extract a valid cover from the frontmatter or article.");
         }
         const response = await publishToDraft(gzhContent.title, gzhContent.content, gzhContent.cover, {
             relativePath: absoluteDirPath,
