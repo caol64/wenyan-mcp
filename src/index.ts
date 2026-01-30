@@ -12,12 +12,12 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { getGzhContent } from "@wenyan-md/core/wrapper";
+import { configStore, renderStyledContent } from "@wenyan-md/core/wrapper";
 import { publishToDraft } from "@wenyan-md/core/publish";
-import { themes, Theme } from "@wenyan-md/core/theme";
 import { getNormalizeFilePath } from "./utils.js";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { listThemes, REGISTER_THEME_SCHEMA, registerTheme, REMOVE_THEME_SCHEMA, removeTheme } from "./theme.js";
 
 /**
  * Create an MCP server with capabilities for resources (to list/read notes),
@@ -35,7 +35,7 @@ const server = new Server(
             prompts: {},
             // logging: {},
         },
-    }
+    },
 );
 
 /**
@@ -78,6 +78,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     properties: {},
                 },
             },
+            REGISTER_THEME_SCHEMA,
+            REMOVE_THEME_SCHEMA,
         ],
     };
 });
@@ -100,6 +102,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         let content = String(contentArg || "");
         const file = String(fileArg || "");
         const themeId = String(request.params.arguments?.theme_id || "");
+        // 先尝试从已注册的主题中获取主题
+        const customTheme = configStore.getThemeById(themeId);
         let absoluteDirPath: string | undefined;
         if (!content && file) {
             const normalizePath = getNormalizeFilePath(file);
@@ -109,7 +113,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             }
             absoluteDirPath = path.dirname(normalizePath);
         }
-        const gzhContent = await getGzhContent(content, themeId, "solarized-light", true, true);
+        const gzhContent = await renderStyledContent(content, {
+            themeId,
+            hlThemeId: "solarized-light",
+            isMacStyle: true,
+            isAddFootnote: true,
+            themeCss: customTheme,
+        });
         if (!gzhContent.title) {
             throw new Error("Can't extract a valid title from the frontmatter.");
         }
@@ -129,17 +139,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             ],
         };
     } else if (request.params.name === "list_themes") {
-        const themeResources = Object.entries(themes).map(([id, theme]: [string, Theme]) => ({
-            type: "text",
-            text: JSON.stringify({
-                id: theme.id,
-                name: theme.name,
-                description: theme.description,
-            }),
-        }));
-        return {
-            content: themeResources,
-        };
+        return listThemes();
+    } else if (request.params.name === "register_theme") {
+        return await registerTheme(
+            String(request.params.arguments?.name || ""),
+            String(request.params.arguments?.path || ""),
+        );
+    } else if (request.params.name === "remove_theme") {
+        return removeTheme(String(request.params.arguments?.name || ""));
     }
 
     throw new Error("Unknown tool");

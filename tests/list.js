@@ -1,9 +1,6 @@
 import OpenAI from "openai";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import fs from "node:fs/promises";
-import path from "node:path";
-import process from "node:process";
 
 const LLM_API_KEY = process.env.LLM_API_KEY;
 if (!LLM_API_KEY) {
@@ -21,26 +18,14 @@ if (!LLM_MODEL) {
 }
 
 async function runMcp() {
-    const pwd = process.cwd();
-    const transport = new StdioClientTransport({
-        command: "docker",
-        args: [
-            "run",
-            "--rm",
-            "-i",
-            "--env-file",
-            ".env.test",
-            "-e",
-            `HOST_FILE_PATH=${pwd}`,
-            "-v",
-            `${pwd}:/mnt/host-downloads`,
-            "caol64/wenyan-mcp",
-        ],
-    });
     // const transport = new StdioClientTransport({
-    //     command: "pnpm",
-    //     args: ["exec", "dotenv", "-e", ".env.test", "--", "node", "dist/index.js"],
+    //     command: "docker",
+    //     args: ["run", "--rm", "-i", "caol64/wenyan-mcp"],
     // });
+    const transport = new StdioClientTransport({
+        command: "node",
+        args: ["dist/index.js"],
+    });
 
     const client = new Client(
         {
@@ -72,13 +57,7 @@ async function runMcp() {
         }));
 
         const llmClient = new OpenAI({ apiKey: LLM_API_KEY, baseURL: LLM_BASE_URL });
-        // 使用文件路径作为输入
-        const content = "./test/publish.md";
-        // 使用文件内容作为输入
-        // let content = await fs.readFile(path.resolve("./test/publish.md"), "utf-8");
-        // content = content.replace(/cover: wenyan.jpg/g, `cover: ${path.resolve("./test/wenyan.jpg")}`);
-        // content = content.replace(/result_image.jpg/g, path.resolve("./test/result_image.jpg"));
-        const userPrompt = { role: "user", content: `使用phycat主题将这篇文章发布到微信公众号：\n\n${content}` };
+        const userPrompt = { role: "user", content: "目前你可以使用哪些公众号主题" };
         const response = await llmClient.chat.completions.create({
             model: LLM_MODEL,
             messages: [userPrompt],

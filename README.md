@@ -21,8 +21,6 @@
 
 文颜的目标是：**让写作者专注内容，而不是排版和平台适配**。
 
-本仓库是 **文颜的 MCP Server 版本**，基于模型上下文协议（Model Context Protocol），旨在让 AI 助手（如 Claude Desktop）具备自动排版和发布公众号文章的能力。
-
 ## 文颜的不同版本
 
 文颜目前提供多种形态，覆盖不同使用场景：
@@ -33,12 +31,8 @@
 -   👉 [MCP 版本](https://github.com/caol64/wenyan-mcp) - 本项目
 -   [核心库](https://github.com/caol64/wenyan-core) - 嵌入 Node / Web 项目
 
-## 功能特性
+本仓库是 **文颜的 MCP Server 版本**，基于模型上下文协议（Model Context Protocol），旨在让 AI 助手（如 Claude Desktop）具备自动排版和发布公众号文章的能力。
 
--   列出并选择支持的文章主题
--   使用内置主题对 Markdown 内容排版
--   自动处理并上传图片（本地 / 网络）
--   一键发布文章到微信公众号草稿箱
 -   **与 AI 深度集成**：[让 AI 帮你管理公众号的排版和发布](https://babyno.top/posts/2025/06/let-ai-help-you-manage-your-gzh-layout-and-publishing/)
 
 <video src="https://github.com/user-attachments/assets/2c355f76-f313-48a7-9c31-f0f69e5ec207"></video>
@@ -46,20 +40,6 @@
 > [!TIP]
 >
 > 如果与 AI 集成遇到问题，可以参考 [test/list.js](./test/list.js) 和 [test/publish.js](./test/publish.js) 中的完整调用示例。
-
-## 主题效果预览
-
-👉 [内置主题预览](https://yuzhi.tech/docs/wenyan/theme)
-
-文颜内置并适配了多个优秀的 Typora 主题，在此感谢原作者：
-
--   [Orange Heart](https://github.com/evgo2017/typora-theme-orange-heart)
--   [Rainbow](https://github.com/thezbm/typora-theme-rainbow)
--   [Lapis](https://github.com/YiNNx/typora-theme-lapis)
--   [Pie](https://github.com/kevinzhao2233/typora-theme-pie)
--   [Maize](https://github.com/BEATREE/typora-maize-theme)
--   [Purple](https://github.com/hliu202/typora-purple-theme)
--   [物理猫-薄荷](https://github.com/sumruler/typora-theme-phycat)
 
 ## 安装与集成
 
@@ -131,6 +111,81 @@ docker pull caol64/wenyan-mcp
 > *   **环境变量 (`HOST_FILE_PATH`)**：必须与宿主机挂载的文件/图片目录路径保持一致。
 > *   **原理**：你的 Markdown 文件/文章内所引用的本地图片应放置在该目录中，Docker 会自动将其映射，使容器能够读取并上传。
 
+## 基本用法
+
+### 列出主题
+
+对AI说
+
+> 目前你可以使用哪些公众号主题？
+
+AI回复：
+
+```
+目前我支持的公众号主题包括以下这些，每个主题都有独特的风格和配色，适用于不同的内容调性：
+
+1. **Default（默认）**  
+   简洁经典的排版，适合长文阅读，通用性强。
+
+2. **OrangeHeart（橙心）**  
+   暖橙色调，优雅而富有活力，适合情感、生活类内容。
+...
+```
+
+### 注册主题
+
+对AI说
+
+> 帮我把这个css(https://wenyan.yuzhi.tech/manhua.css)注册为一个新的公众号主题，名称为：xiuluochang
+
+AI回复：
+
+```
+好的，已成功将 CSS 样式表注册为新的公众号主题，主题名称为：**xiuluochang**。
+
+您现在可以在公众号后台选择该主题进行应用，样式将按照 `https://wenyan.yuzhi.tech/manhua.css` 的定义进行渲染。
+
+如有需要进一步自定义或更换主题，随时告诉我！
+```
+
+### 删除主题
+
+对AI说
+
+> 把名为“xiuluochang”的公众号主题删除
+
+AI回复：
+
+```
+公众号主题 “xiuluochang” 已成功删除。
+```
+
+### 发布文章
+
+对AI说
+
+> 使用phycat主题将这篇文章发布到微信公众号：`./tests/publish.md`
+
+AI回复：
+
+```
+文章已成功发布至微信公众号草稿箱！🎉
+
+- **主题**：phycat  
+- **媒体ID**：xxx
+
+您可登录微信公众号后台，在「草稿箱」中查看并编辑文章，确认无误后即可一键发布。如需进一步排版优化、添加封面或设置摘要，我也可以协助您完成！
+
+是否需要我帮您生成一篇发布文案或封面建议？ 😊
+```
+
+## 关于图片自动上传
+
+支持以下图片来源：
+
+-   本地路径（如：`/Users/lei/Downloads/result_image.jpg`）
+-   网络路径（如：`https://example.com/image.jpg`）
+
 ## 环境变量说明
 
 无论使用哪种方式，都需要配置以下环境变量以连接微信公众号平台：
@@ -156,13 +211,6 @@ cover: /Users/xxx/image.jpg
     -   本地路径或网络图片
     -   如果正文有至少一张图片，可省略，此时将使用其中一张作为封面
     -   如果正文无图片，则必须提供 cover
-
-## 关于图片自动上传
-
-支持以下图片来源：
-
--   本地路径（如：`/Users/lei/Downloads/result_image.jpg`）
--   网络路径（如：`https://example.com/image.jpg`）
 
 ## 微信公众号 IP 白名单
 

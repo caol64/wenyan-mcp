@@ -10,12 +10,11 @@
     "declaration": true,
     "declarationMap": false,
     "composite": true,
-    "baseUrl": ".",
     "outDir": "dist",
     "rootDir": "src",
     "noImplicitAny": false,
     "declarationDir": "dist/types",
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist", "bin/**/*.js"]
+  "exclude": ["node_modules", "dist"]
 }

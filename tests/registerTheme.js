@@ -18,9 +18,13 @@ if (!LLM_MODEL) {
 }
 
 async function runMcp() {
+    // const transport = new StdioClientTransport({
+    //     command: "docker",
+    //     args: ["run", "--rm", "-i", "caol64/wenyan-mcp"],
+    // });
     const transport = new StdioClientTransport({
-        command: "docker",
-        args: ["run", "--rm", "-i", "caol64/wenyan-mcp"],
+        command: "node",
+        args: ["dist/index.js"],
     });
 
     const client = new Client(
@@ -53,7 +57,7 @@ async function runMcp() {
         }));
 
         const llmClient = new OpenAI({ apiKey: LLM_API_KEY, baseURL: LLM_BASE_URL });
-        const userPrompt = { role: "user", content: "目前你可以使用哪些公众号主题" };
+        const userPrompt = { role: "user", content: "帮我把这个css(https://wenyan.yuzhi.tech/manhua.css)注册为一个新的公众号主题，名称为：xiuluochang" };
         const response = await llmClient.chat.completions.create({
             model: LLM_MODEL,
             messages: [userPrompt],
