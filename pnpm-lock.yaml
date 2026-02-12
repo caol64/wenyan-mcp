@@ -14,6 +14,9 @@ importers:
       '@wenyan-md/core':
         specifier: ^2.0.2
         version: 2.0.2(form-data-encoder@4.1.0)(formdata-node@6.0.3)(jsdom@27.4.0)
+      eventsource:
+        specifier: ^4.1.0
+        version: 4.1.0
       form-data-encoder:
         specifier: ^4.1.0
         version: 4.1.0
@@ -197,6 +200,14 @@ packages:
     resolution: {integrity: sha512-eGuFFw7Upda+g4p+QHvnW0RyTX/SVeJBDM/gCtMARO0cLuT2HcEKnTPvhjV6aGeqrCB/sbNop0Kszm0jsaWU4A==}
     engines: {node: '>=4'}
     hasBin: true
+
+  eventsource-parser@3.0.6:
+    resolution: {integrity: sha512-Vo1ab+QXPzZ4tCa8SwIHJFaSzy4R6SHf7BY79rFBDf0idraZWAkYrDjDj8uWaSm3S2TK+hJ7/t1CEmZ7jXw+pg==}
+    engines: {node: '>=18.0.0'}
+
+  eventsource@4.1.0:
+    resolution: {integrity: sha512-2GuF51iuHX6A9xdTccMTsNb7VO0lHZihApxhvQzJB5A03DvHDd2FQepodbMaztPBmBcE/ox7o2gqaxGhYB9LhQ==}
+    engines: {node: '>=20.0.0'}
 
   form-data-encoder@4.1.0:
     resolution: {integrity: sha512-G6NsmEW15s0Uw9XnCg+33H3ViYRyiM0hMrMhhqQOR8NFc5GhYrI+6I3u7OTw7b91J2g8rtvMBZJDbcGb2YUniw==}
@@ -574,6 +585,12 @@ snapshots:
   esm@3.2.25: {}
 
   esprima@4.0.1: {}
+
+  eventsource-parser@3.0.6: {}
+
+  eventsource@4.1.0:
+    dependencies:
+      eventsource-parser: 3.0.6
 
   form-data-encoder@4.1.0: {}
 

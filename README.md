@@ -111,6 +111,103 @@ docker pull caol64/wenyan-mcp
 > *   **环境变量 (`HOST_FILE_PATH`)**：必须与宿主机挂载的文件/图片目录路径保持一致。
 > *   **原理**：你的 Markdown 文件/文章内所引用的本地图片应放置在该目录中，Docker 会自动将其映射，使容器能够读取并上传。
 
+### 方式三：HTTP 模式 (新增)
+
+从 v2.0.0 开始，文颜 MCP Server 支持 HTTP SSE 模式，适合远程部署和 Kubernetes 环境。
+
+**启动 HTTP 服务器：**
+
+```bash
+wenyan-mcp --http-port 3000
+```
+
+**或使用 Docker：**
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -e WECHAT_APP_ID=your_app_id \
+  -e WECHAT_APP_SECRET=your_app_secret \
+  -v /your/host/file/path:/mnt/host-downloads \
+  -e HOST_FILE_PATH=/your/host/file/path \
+  --name wenyan-mcp \
+  caol64/wenyan-mcp --http-port 3000
+```
+
+**配置 MCP Client：**
+
+```json
+{
+  "mcpServers": {
+    "wenyan-mcp-http": {
+      "name": "公众号助手 (HTTP)",
+      "baseUrl": "http://localhost:3000/sse"
+    }
+  }
+}
+```
+
+**Kubernetes 部署：**
+请参考项目仓库中的 Kubernetes 部署示例配置文件，或根据您的环境定制。
+
+**优势：**
+- 支持远程调用，适合云部署
+- 多个客户端可连接同一服务器
+- 减少 kubectl exec 开销
+- 兼容 OpenClaw、Claude Desktop 等 MCP 客户端
+
+**增强功能（v2.0.0+）：**
+- 根端点 `/` 返回服务器信息
+- 自动 CORS 头支持，方便前端集成
+- 请求日志记录，便于调试
+- 健康检查端点 `/health`
+- 结构化 JSON 日志，便于监控
+- 可选的 API 密钥认证（HTTP_API_KEY 环境变量）
+- 可配置的 CORS 来源（HTTP_CORS_ORIGIN 环境变量）
+- 可调整的日志级别（HTTP_LOG_LEVEL 环境变量）
+- 改进的错误处理与适当的 HTTP 状态码
+
+**高级配置：**
+
+HTTP 服务器支持以下环境变量进行高级配置：
+
+| 环境变量 | 默认值 | 说明 |
+|----------|--------|------|
+| `HTTP_CORS_ORIGIN` | `*` | 允许的 CORS 来源，可设置为具体域名（如 `https://example.com`）以限制跨域访问 |
+| `HTTP_API_KEY` | 无 | 如果设置，所有请求必须携带 `X-API-Key` 头且值与此匹配（健康检查和根端点除外） |
+| `HTTP_LOG_LEVEL` | `info` | 日志级别：`debug`、`info`、`warn`、`error` |
+
+**带认证的 Docker 运行示例：**
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -e WECHAT_APP_ID=your_app_id \
+  -e WECHAT_APP_SECRET=your_app_secret \
+  -e HTTP_API_KEY=your_secret_api_key \
+  -e HTTP_CORS_ORIGIN=https://yourdomain.com \
+  -v /your/host/file/path:/mnt/host-downloads \
+  -e HOST_FILE_PATH=/your/host/file/path \
+  --name wenyan-mcp \
+  caol64/wenyan-mcp --http-port 3000
+```
+
+**配置带认证的 MCP Client：**
+
+```json
+{
+  "mcpServers": {
+    "wenyan-mcp-http": {
+      "name": "公众号助手 (HTTP)",
+      "baseUrl": "http://localhost:3000/sse",
+      "headers": {
+        "X-API-Key": "your_secret_api_key"
+      }
+    }
+  }
+}
+```
+
 ## 基本用法
 
 ### 列出主题
