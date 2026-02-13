@@ -167,6 +167,27 @@ docker run -d \
 - 可调整的日志级别（HTTP_LOG_LEVEL 环境变量）
 - 改进的错误处理与适当的 HTTP 状态码
 
+**v2.0.1 新特性（无状态与安全增强）：**
+- **多租户支持 (Stateless)**：`publish_article` 工具优先使用传入的 `wechat_app_id` 和 `wechat_app_secret` 参数，不再强制依赖服务器环境变量。适合 SaaS 或多用户共享部署。
+- **文件上传接口 (Secure Upload)**：新增 `POST /upload` 接口，支持上传 Markdown 文件并返回临时 `file_id`。
+  - 解决 IP 限制：客户端上传文件 -> 服务器（在白名单 IP）获取内容 -> 发布到微信。
+  - 节省 Token：相比直接传输全文，使用 `file_id` 引用服务器上的临时文件更高效。
+  - 自动清理：上传的文件仅存储 10 分钟（可配置），之后自动销毁。
+- **HTTPS 支持**：支持 `--https` 启动参数，需配合 `SSL_KEY_PATH` 和 `SSL_CERT_PATH` 环境变量使用，保障传输安全。
+- **本地文件限制**：默认**禁用**本地文件访问（`--allow-local-files` 开启），以适应无状态容器化部署的安全需求。
+
+**v2.0.1 启动示例 (Docker)：**
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -e HTTP_API_KEY=your_gateway_secret \
+  --name wenyan-mcp \
+  msga/wenyan-mcp:2.0.1 \
+  --http-port 3000
+```
+*(注：v2.0.1 默认不挂载本地目录，所有文件建议通过 `/upload` 接口或 `content_url` 传入)*
+
 **高级配置：**
 
 HTTP 服务器支持以下环境变量进行高级配置：

@@ -19,7 +19,11 @@ import { getNormalizeFilePath } from "./utils.js";
 import fs from "node:fs/promises";
 import path from "node:path";
 import http from "node:http";
+import https from "node:https";
 import url from "node:url";
+import os from "node:os";
+import { v4 as uuidv4 } from 'uuid';
+import formidable from 'formidable';
 import { listThemes, REGISTER_THEME_SCHEMA, registerTheme, REMOVE_THEME_SCHEMA, removeTheme } from "./theme.js";
 
 /**
@@ -30,17 +34,25 @@ interface HttpServerConfig {
   corsOrigin?: string;
   apiKey?: string;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
+  enableHttps: boolean;
+  sslKey?: string;
+  sslCert?: string;
+  allowLocalFiles: boolean; // Control if local file paths are allowed
 }
 
 /**
- * Get configuration from environment variables
+ * Get configuration from environment variables and args
  */
-function getHttpConfig(port: number): HttpServerConfig {
+function getHttpConfig(port: number, enableHttps: boolean, allowLocalFiles: boolean): HttpServerConfig {
   return {
     port,
     corsOrigin: process.env.HTTP_CORS_ORIGIN || '*',
     apiKey: process.env.HTTP_API_KEY,
     logLevel: (process.env.HTTP_LOG_LEVEL as any) || 'info',
+    enableHttps,
+    sslKey: process.env.SSL_KEY_PATH,
+    sslCert: process.env.SSL_CERT_PATH,
+    allowLocalFiles,
   };
 }
 
@@ -54,13 +66,67 @@ function log(level: 'debug' | 'info' | 'warn' | 'error', message: string, data?:
 }
 
 /**
+ * Helper to fetch content from URL
+ */
+async function fetchContent(url: string): Promise<string> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch content from ${url}: ${response.statusText}`);
+  }
+  return response.text();
+}
+
+/**
+ * Helper to process uploaded images
+ */
+async function processImages(images: Array<{ name: string; content_base64: string }>): Promise<string> {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wenyan-mcp-'));
+  for (const img of images) {
+    const buffer = Buffer.from(img.content_base64, 'base64');
+    const safeName = path.basename(img.name); // Prevent directory traversal
+    await fs.writeFile(path.join(tempDir, safeName), buffer);
+  }
+  return tempDir;
+}
+
+/**
+ * Temporary file storage configuration
+ */
+const UPLOAD_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const UPLOAD_DIR = path.join(os.tmpdir(), 'wenyan-mcp-uploads');
+
+// Ensure upload directory exists
+fs.mkdir(UPLOAD_DIR, { recursive: true }).catch(err => console.error("Failed to create upload dir:", err));
+
+/**
+ * Clean up old uploads
+ */
+async function cleanupOldUploads() {
+    try {
+        const files = await fs.readdir(UPLOAD_DIR);
+        const now = Date.now();
+        for (const file of files) {
+            const filePath = path.join(UPLOAD_DIR, file);
+            const stats = await fs.stat(filePath);
+            if (now - stats.mtimeMs > UPLOAD_TTL_MS) {
+                await fs.unlink(filePath).catch(() => {});
+            }
+        }
+    } catch (e) {
+        // Ignore errors
+    }
+}
+// Run cleanup every 10 minutes
+setInterval(cleanupOldUploads, 10 * 60 * 1000).unref();
+
+/**
  * Create and configure an MCP server instance.
  */
-function createServer(): Server {
+function createServer(allowLocalFiles: boolean): Server {
     const server = new Server(
         {
             name: "wenyan-mcp",
-            version: "2.0.0",
+            version: "2.0.1",
         },
         {
             capabilities: {
@@ -81,25 +147,54 @@ function createServer(): Server {
             tools: [
                 {
                     name: "publish_article",
-                    description: "Format a Markdown article using a selected theme and publish it to '微信公众号'.",
+                    description: "Format a Markdown article using a selected theme and publish it to '微信公众号'. Supports multiple input methods: local file (legacy), remote URL (preferred), or temporary file ID (secure upload).",
                     inputSchema: {
                         type: "object",
                         properties: {
+                            file_id: {
+                                type: "string",
+                                description: "ID of a previously uploaded file (via /upload endpoint). Use this for large files to save tokens.",
+                            },
                             content: {
                                 type: "string",
                                 description:
-                                    "The Markdown text to publish. REQUIRED if 'file' is not provided. Preserves frontmatter if present.",
+                                    "The Markdown text to publish. REQUIRED if 'file', 'content_url', or 'file_id' is not provided.",
+                            },
+                            content_url: {
+                                type: "string",
+                                description:
+                                    "URL to a Markdown file (e.g. GitHub raw link). Preferred over 'content' for large files to save tokens.",
                             },
                             file: {
                                 type: "string",
                                 description:
-                                    "The path to the Markdown file (absolute or relative). REQUIRED if 'content' is not provided.",
+                                    "The local path to the Markdown file. Only available if server is configured with --allow-local-files.",
                             },
                             theme_id: {
                                 type: "string",
                                 description:
                                     "ID of the theme to use (e.g., default, orangeheart, rainbow, lapis, pie, maize, purple, phycat).",
                             },
+                            wechat_app_id: {
+                                type: "string",
+                                description: "WeChat Official Account AppID. Required for stateless mode.",
+                            },
+                            wechat_app_secret: {
+                                type: "string",
+                                description: "WeChat Official Account AppSecret. Required for stateless mode.",
+                            },
+                            images: {
+                                type: "array",
+                                description: "List of images to upload if article references local files. Useful when HOST_FILE_PATH is not available.",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        name: { type: "string", description: "Filename referenced in markdown (e.g. 'image.png')" },
+                                        content_base64: { type: "string", description: "Base64 encoded image content" }
+                                    },
+                                    required: ["name", "content_base64"]
+                                }
+                            }
                         },
                     },
                 },
@@ -124,54 +219,123 @@ function createServer(): Server {
      */
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (request.params.name === "publish_article") {
-            // server.sendLoggingMessage({
-            //     level: "debug",
-            //     data: JSON.stringify(request.params.arguments),
-            // });
-            const contentArg = request.params.arguments?.content;
-            const fileArg = request.params.arguments?.file;
-            if (!contentArg && !fileArg) {
-                throw new Error("You must provide either 'content' or 'file' to publish an article.");
-            }
-            let content = String(contentArg || "");
-            const file = String(fileArg || "");
-            const themeId = String(request.params.arguments?.theme_id || "");
-            // 先尝试从已注册的主题中获取主题
-            const customTheme = configStore.getThemeById(themeId);
-            let absoluteDirPath: string | undefined;
-            if (!content && file) {
-                const normalizePath = getNormalizeFilePath(file);
-                content = await fs.readFile(normalizePath, "utf-8");
-                if (!content) {
-                    throw new Error("Can't read content from the specified file.");
-                }
-                absoluteDirPath = path.dirname(normalizePath);
-            }
-            const gzhContent = await renderStyledContent(content, {
-                themeId,
-                hlThemeId: "solarized-light",
-                isMacStyle: true,
-                isAddFootnote: true,
-                themeCss: customTheme,
-            });
-            if (!gzhContent.title) {
-                throw new Error("Can't extract a valid title from the frontmatter.");
-            }
-            if (!gzhContent.cover) {
-                throw new Error("Can't extract a valid cover from the frontmatter or article.");
-            }
-            const response = await publishToDraft(gzhContent.title, gzhContent.content, gzhContent.cover, {
-                relativePath: absoluteDirPath,
-            });
+            const args = request.params.arguments || {};
+            
+            // 1. Resolve Configuration (Stateless support)
+            const appId = (args.wechat_app_id as string) || process.env.WECHAT_APP_ID;
+            const appSecret = (args.wechat_app_secret as string) || process.env.WECHAT_APP_SECRET;
 
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: `Your article was successfully published to '公众号草稿箱'. The media ID is ${response.media_id}.`,
-                    },
-                ],
-            };
+            if (!appId || !appSecret) {
+                throw new Error("Missing WeChat AppID or AppSecret. Please provide them via arguments (stateless mode) or server environment variables.");
+            }
+
+            // 2. Resolve Content
+            let content = String(args.content || "");
+            const contentUrl = String(args.content_url || "");
+            const file = String(args.file || "");
+            const fileId = String(args.file_id || "");
+            const themeId = String(args.theme_id || "");
+            const images = args.images as Array<{ name: string; content_base64: string }> | undefined;
+
+            let workingDir: string | undefined;
+            let tempDir: string | undefined;
+
+            try {
+                // Priority: file_id > content_url > content > file
+                if (fileId) {
+                    // Validate fileId to prevent directory traversal
+                    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fileId)) {
+                        throw new Error("Invalid file_id format. Must be a valid UUID.");
+                    }
+                    
+                    // Handle temporary uploaded file
+                    const uploadPath = path.join(UPLOAD_DIR, fileId);
+                    try {
+                        content = await fs.readFile(uploadPath, "utf-8");
+                        // For uploaded files, we treat the upload dir as working dir so relative images might work if also uploaded?
+                        // Actually, single markdown file upload doesn't include images. Images must be passed via 'images' arg or embedded as base64.
+                        log('info', `Read content from uploaded file ID: ${fileId}`);
+                        // Optionally delete immediately? Or let TTL handle it. Let TTL handle it for retry scenarios.
+                    } catch (e) {
+                        throw new Error(`Invalid or expired file_id: ${fileId}`);
+                    }
+                } else if (contentUrl) {
+                    log('info', `Fetching content from URL: ${contentUrl}`);
+                    content = await fetchContent(contentUrl);
+                } else if (!content && file) {
+                    // Legacy file path support
+                    if (!allowLocalFiles) {
+                         throw new Error("Local file access is disabled on this server. Please use content_url or file upload (file_id).");
+                    }
+                    try {
+                        const normalizePath = getNormalizeFilePath(file);
+                        content = await fs.readFile(normalizePath, "utf-8");
+                        workingDir = path.dirname(normalizePath);
+                    } catch (e) {
+                         throw new Error(`Cannot read local file '${file}'.`);
+                    }
+                }
+
+                if (!content) {
+                     throw new Error("You must provide 'content', 'content_url', 'file_id', or a valid local 'file'.");
+                }
+
+                // 3. Handle Images / Working Directory
+                if (images && images.length > 0) {
+                    tempDir = await processImages(images);
+                    workingDir = tempDir; // Override working directory to temp dir containing images
+                    log('info', `Processed ${images.length} images to temp dir: ${tempDir}`);
+                } else if (!workingDir && process.env.HOST_FILE_PATH) {
+                    // Fallback to HOST_FILE_PATH if available and no specific images provided
+                    workingDir = process.env.HOST_FILE_PATH;
+                }
+
+                // 4. Render and Publish
+                const customTheme = configStore.getThemeById(themeId);
+                
+                const gzhContent = await renderStyledContent(content, {
+                    themeId,
+                    hlThemeId: "solarized-light",
+                    isMacStyle: true,
+                    isAddFootnote: true,
+                    themeCss: customTheme,
+                });
+
+                if (!gzhContent.title) {
+                    throw new Error("Can't extract a valid title from the frontmatter.");
+                }
+                if (!gzhContent.cover) {
+                    throw new Error("Can't extract a valid cover from the frontmatter or article.");
+                }
+
+                // Pass dynamic config to publishToDraft
+                const response = await publishToDraft(gzhContent.title, gzhContent.content, gzhContent.cover, {
+                    relativePath: workingDir,
+                    appId: appId,
+                    appSecret: appSecret
+                });
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Your article was successfully published to '公众号草稿箱'. The media ID is ${response.media_id}.`,
+                        },
+                    ],
+                };
+
+            } finally {
+                // Cleanup temp dir
+                if (tempDir) {
+                    try {
+                        await fs.rm(tempDir, { recursive: true, force: true });
+                        log('debug', `Cleaned up temp dir: ${tempDir}`);
+                    } catch (e) {
+                        log('warn', `Failed to clean up temp dir: ${tempDir}`, e);
+                    }
+                }
+            }
+
         } else if (request.params.name === "list_themes") {
             return listThemes();
         } else if (request.params.name === "register_theme") {
@@ -194,7 +358,7 @@ function createServer(): Server {
  * This allows the server to communicate via standard input/output streams.
  */
 async function mainStdio() {
-    const server = createServer();
+    const server = createServer(true); // Always allow local files in stdio mode
     const transport = new StdioServerTransport();
     await server.connect(transport);
     console.error("Wenyan MCP server running on stdio");
@@ -203,9 +367,27 @@ async function mainStdio() {
 /**
  * Start an HTTP server with SSE transport on the given port.
  */
-async function mainHttp(port: number) {
-    const config = getHttpConfig(port);
-    const httpServer = http.createServer();
+async function mainHttp(port: number, enableHttps: boolean, allowLocalFiles: boolean) {
+    const config = getHttpConfig(port, enableHttps, allowLocalFiles);
+    
+    let httpServer: http.Server | https.Server;
+    
+    if (config.enableHttps && config.sslKey && config.sslCert) {
+        try {
+            const key = await fs.readFile(config.sslKey);
+            const cert = await fs.readFile(config.sslCert);
+            httpServer = https.createServer({ key, cert });
+            log('info', 'HTTPS enabled with provided certificate');
+        } catch (e) {
+            console.error("Failed to load SSL certs:", e);
+            process.exit(1);
+        }
+    } else {
+        httpServer = http.createServer();
+        if (config.enableHttps) {
+            log('warn', 'HTTPS flag enabled but no certs provided. Running in HTTP mode (behind proxy expected).');
+        }
+    }
 
     // Map sessionId to transport
     const transports = new Map<string, SSEServerTransport>();
@@ -218,57 +400,91 @@ async function mainHttp(port: number) {
             url: req.url,
             statusCode: res.statusCode,
             durationMs: duration,
-            userAgent: req.headers['user-agent'],
         });
     }
 
-    // CORS headers with configurable origin
+    // CORS headers
     function setCorsHeaders(res: http.ServerResponse) {
         res.setHeader('Access-Control-Allow-Origin', config.corsOrigin || '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
     }
 
-    // API key authentication middleware
+    // API key authentication
     function authenticate(req: http.IncomingMessage): boolean {
-        if (!config.apiKey) {
-            return true; // No API key required
-        }
-        const apiKey = req.headers['x-api-key'];
-        return apiKey === config.apiKey;
-    }
-
-    // Global error handler for HTTP requests
-    function handleError(res: http.ServerResponse, statusCode: number, message: string, error?: any) {
-        log('error', 'HTTP error', { statusCode, message, error: error?.message || error });
-        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            error: message,
-            ...(config.logLevel === 'debug' && error && { detail: error.message })
-        }));
+        if (!config.apiKey) return true;
+        return req.headers['x-api-key'] === config.apiKey;
     }
 
     httpServer.on('request', async (req, res) => {
         const startTime = Date.now();
-        // Set CORS headers
         setCorsHeaders(res);
 
-        // Handle OPTIONS preflight requests
         if (req.method === 'OPTIONS') {
             res.writeHead(204).end();
             logRequest(req, res, startTime);
             return;
         }
 
-        // Authenticate requests (except health and root)
         const parsedUrl = url.parse(req.url || '', true);
         const pathname = parsedUrl.pathname;
+
+        // Public endpoints: Health, Root
         if (!['/health', '/'].includes(pathname || '')) {
             if (!authenticate(req)) {
-                handleError(res, 401, 'Unauthorized: Invalid or missing API key');
+                res.writeHead(401).end(JSON.stringify({ error: 'Unauthorized' }));
                 logRequest(req, res, startTime);
                 return;
             }
+        }
+
+        // Upload Endpoint
+        if (req.method === 'POST' && pathname === '/upload') {
+            const form = formidable({
+                uploadDir: UPLOAD_DIR,
+                keepExtensions: true,
+                maxFileSize: 10 * 1024 * 1024, // 10MB
+                filename: (name, ext, part, form) => {
+                    return uuidv4(); // Generate UUID as filename
+                }
+            });
+
+            form.parse(req, (err, fields, files) => {
+                if (err) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Upload failed', details: String(err) }));
+                    return;
+                }
+
+                // Get the first file
+                const fileKeys = Object.keys(files);
+                if (fileKeys.length === 0) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'No file uploaded' }));
+                    return;
+                }
+
+                const firstFileKey = fileKeys[0];
+                const fileValue = files[firstFileKey];
+                const firstFile: any = Array.isArray(fileValue) ? fileValue[0] : fileValue;
+
+                if (!firstFile) {
+                    res.writeHead(400).end(JSON.stringify({ error: 'File upload error' }));
+                    return;
+                }
+                
+                // filename is the UUID because of our custom filename function
+                const fileId = firstFile.newFilename; 
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ 
+                    file_id: fileId,
+                    expires_in: UPLOAD_TTL_MS / 1000,
+                    message: "File uploaded successfully. Use file_id in publish_article tool."
+                }));
+                logRequest(req, res, startTime);
+            });
+            return;
         }
 
         // Root endpoint
@@ -276,120 +492,61 @@ async function mainHttp(port: number) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
                 name: 'wenyan-mcp',
-                version: '2.0.0',
+                version: '2.0.1',
                 endpoints: {
                     sse: '/sse',
                     message: '/message',
+                    upload: '/upload',
                     health: '/health',
-                    root: '/'
                 },
-                documentation: 'https://github.com/caol64/wenyan-mcp',
-                httpMode: true,
-                features: {
-                    authentication: !!config.apiKey,
-                    cors: config.corsOrigin !== '*',
-                    logLevel: config.logLevel
+                config: {
+                    https: !!config.enableHttps,
+                    allowLocalFiles: config.allowLocalFiles
                 }
             }));
-            logRequest(req, res, startTime);
             return;
         }
 
-        // Health check with additional info
-        if (req.method === 'GET' && pathname === '/health') {
-            const health = {
-                status: 'healthy',
-                timestamp: new Date().toISOString(),
-                version: '2.0.0',
-                services: {
-                    wechat_api: 'unknown' // Can be enhanced to check WeChat API connectivity
-                }
-            };
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(health));
-            logRequest(req, res, startTime);
-            return;
-        }
-
-        // SSE connection endpoint
+        // SSE connection
         if (req.method === 'GET' && pathname === '/sse') {
             try {
-                // Create a new SSE transport for this connection
                 const transport = new SSEServerTransport('/message', res);
                 const sessionId = transport.sessionId;
                 transports.set(sessionId, transport);
-
-                // Create a new server instance for this connection
-                const server = createServer();
+                const server = createServer(config.allowLocalFiles); // Pass local files config
                 await server.connect(transport);
-                // The transport.start() is called by connect() automatically
-
-                // Clean up when the connection closes
-                transport.onclose = () => {
-                    transports.delete(sessionId);
-                    log('debug', 'SSE connection closed', { sessionId });
-                };
-                
-                log('info', 'SSE connection established', { sessionId });
-                logRequest(req, res, startTime);
+                transport.onclose = () => transports.delete(sessionId);
             } catch (error) {
-                handleError(res, 500, 'Failed to establish SSE connection', error);
-                logRequest(req, res, startTime);
+                res.writeHead(500).end(JSON.stringify({ error: 'SSE Init Failed' }));
             }
             return;
         }
 
-        // POST message endpoint
+        // Message
         if (req.method === 'POST' && pathname === '/message') {
             const sessionId = parsedUrl.query.sessionId as string;
             const transport = transports.get(sessionId);
             if (!transport) {
-                handleError(res, 404, 'Session not found');
-                logRequest(req, res, startTime);
+                res.writeHead(404).end('Session not found');
                 return;
             }
-            try {
-                await transport.handlePostMessage(req, res);
-                logRequest(req, res, startTime);
-            } catch (error) {
-                handleError(res, 500, 'Internal server error', error);
-                logRequest(req, res, startTime);
-            }
+            await transport.handlePostMessage(req, res);
             return;
         }
+        
+        // Health
+        if (req.method === 'GET' && pathname === '/health') {
+             res.writeHead(200).end(JSON.stringify({ status: 'ok' }));
+             return;
+        }
 
-        // Not found
-        handleError(res, 404, 'Endpoint not found', { path: pathname });
-        logRequest(req, res, startTime);
+        res.writeHead(404).end('Not Found');
     });
 
     httpServer.listen(config.port, () => {
-        log('info', 'Wenyan MCP HTTP server started', {
-            port: config.port,
-            corsOrigin: config.corsOrigin,
-            authentication: config.apiKey ? 'enabled' : 'disabled',
-            logLevel: config.logLevel
-        });
-        console.error(`Wenyan MCP server listening on http://0.0.0.0:${config.port}`);
-        console.error('SSE endpoint: GET /sse');
-        console.error('Message endpoint: POST /message?sessionId=...');
-        console.error('Health check: GET /health');
-        console.error('Root info: GET /');
-        if (config.apiKey) {
-            console.error('API key authentication: REQUIRED (X-API-Key header)');
-        }
-    });
-
-    // Graceful shutdown
-    process.on('SIGINT', () => {
-        log('info', 'Shutting down HTTP server');
-        httpServer.close();
-        process.exit(0);
-    });
-    process.on('SIGTERM', () => {
-        log('info', 'Shutting down HTTP server');
-        httpServer.close();
-        process.exit(0);
+        console.error(`Wenyan MCP server listening on ${config.enableHttps && config.sslKey ? 'https' : 'http'}://0.0.0.0:${config.port}`);
+        if (config.allowLocalFiles) console.error("⚠️ Local file access ENABLED");
+        else console.error("🔒 Local file access DISABLED (Stateless Mode)");
     });
 }
 
@@ -399,15 +556,18 @@ async function mainHttp(port: number) {
 async function main() {
     const args = process.argv.slice(2);
     const httpIndex = args.indexOf('--http-port');
+    const httpsIndex = args.indexOf('--https'); // Flag to enable https
+    const allowLocalIndex = args.indexOf('--allow-local-files'); // Flag to allow local paths
+
     if (httpIndex !== -1) {
         const port = parseInt(args[httpIndex + 1], 10);
-        if (isNaN(port) || port < 1 || port > 65535) {
-            console.error('Invalid port number');
-            process.exit(1);
-        }
-        await mainHttp(port);
+        await mainHttp(port, httpsIndex !== -1, allowLocalIndex !== -1);
     } else {
-        await mainStdio();
+        // Stdio mode always allows local files as it's local
+        const server = createServer(true);
+        const transport = new StdioServerTransport();
+        await server.connect(transport);
+        console.error("Wenyan MCP server running on stdio");
     }
 }
 
