@@ -148,7 +148,15 @@ docker run -d \
 ```
 
 **Kubernetes 部署：**
-请参考项目仓库中的 Kubernetes 部署示例配置文件，或根据您的环境定制。
+
+本项目提供了一份标准的 Kubernetes 部署清单，包含 Deployment 和 Service 配置。
+
+```bash
+kubectl apply -f k8s/deployment.yaml
+```
+
+该配置默认开启了 HTTP Stateless 模式，并配置了 Liveness/Readiness 探针以确保服务高可用。
+请根据实际情况修改 `image` 版本或调整资源限制。
 
 **优势：**
 - 支持远程调用，适合云部署
