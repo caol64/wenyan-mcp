@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aiagent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wenyan-mcp
+  namespace: aiagent
+  labels:
+    app: wenyan-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wenyan-mcp
+  template:
+    metadata:
+      labels:
+        app: wenyan-mcp
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: tencent-gateway-srv-01
+      containers:
+      - name: wenyan-mcp
+        image: docker.io/msga/wenyan-mcp:2.0.1
+        imagePullPolicy: Always
+        stdin: true
+        tty: true
+        ports:
+        - containerPort: 3000
+          name: mcp
+        env:
+        # ⚠️ Public/Stateless Mode: No default WeChat credentials.
+        # Clients MUST provide wechat_app_id/secret in tool arguments.
+        # - name: WECHAT_APP_ID
+        #   value: ""
+        # - name: WECHAT_APP_SECRET
+        #   value: ""
+        
+        # 🔒 Security: API Key for Gateway Access (Optional)
+        # - name: HTTP_API_KEY
+        #   value: "your-secure-gateway-token"
+        
+        # 🌐 Network: Allow all origins for public access
+        - name: HTTP_CORS_ORIGIN
+          value: "*"
+        
+        # 📂 Storage: Disable local file access (Stateless)
+        # - name: HOST_FILE_PATH
+        #   value: "/mnt/host-downloads"
+        
+        # 📝 Logging
+        - name: HTTP_LOG_LEVEL
+          value: "info"
+          
+        # volumeMounts:
+        # - name: downloads
+        #   mountPath: /mnt/host-downloads
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      # volumes:
+      # - name: downloads
+      #   hostPath:
+      #     path: /mnt/naspool/agent-workspace/wenyan-downloads
+      #     type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wenyan-mcp
+  namespace: aiagent
+spec:
+  type: NodePort
+  selector:
+    app: wenyan-mcp
+  ports:
+  - port: 3000
+    targetPort: 3000
+    nodePort: 32135
+    protocol: TCP
+    name: mcp
