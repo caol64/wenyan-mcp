@@ -1,4 +1,6 @@
 import path from "node:path";
+import os from "node:os";
+import fs from "node:fs/promises";
 
 /**
  * 路径标准化工具函数
@@ -28,3 +30,50 @@ export function getNormalizeFilePath(inputPath: string): string {
         return path.resolve(inputPath);
     }
 }
+
+/**
+ * Structured logging
+ */
+export function log(level: "debug" | "info" | "warn" | "error", message: string, data?: any) {
+    const timestamp = new Date().toISOString();
+    const logEntry = { timestamp, level, message, ...(data && { data }) };
+    console.error(JSON.stringify(logEntry));
+}
+
+/**
+ * Helper to fetch content from URL
+ */
+export async function fetchContent(url: string): Promise<string> {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch content from ${url}: ${response.statusText}`);
+    }
+    return response.text();
+}
+
+/**
+ * Helper to process uploaded images
+ */
+export async function processImages(images: Array<{ name: string; content_base64: string }>): Promise<string> {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "wenyan-mcp-"));
+    for (const img of images) {
+        const buffer = Buffer.from(img.content_base64, "base64");
+        const safeName = path.basename(img.name); // Prevent directory traversal
+        await fs.writeFile(path.join(tempDir, safeName), buffer);
+    }
+    return tempDir;
+}
+
+class GlobalStates {
+    private _isSSE = false;
+
+    get isSSE() {
+        return this._isSSE;
+    }
+
+    set isSSE(value: boolean) {
+        this._isSSE = value;
+    }
+}
+
+export const globalStates = new GlobalStates();

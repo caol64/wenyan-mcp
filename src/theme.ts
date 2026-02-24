@@ -1,11 +1,21 @@
 import { getAllGzhThemes } from "@wenyan-md/core";
 import { configStore } from "@wenyan-md/core/wrapper";
 import fs from "node:fs/promises";
-import { getNormalizeFilePath } from "./utils.js";
+import { getNormalizeFilePath, globalStates } from "./utils.js";
+
+export const LIST_THEMES_SCHEMA = {
+    name: "list_themes",
+    description: "List the themes compatible with the 'publish_article' tool to publish an article to '微信公众号'.",
+    inputSchema: {
+        type: "object",
+        properties: {},
+    },
+} as const;
 
 export const REGISTER_THEME_SCHEMA = {
     name: "register_theme",
-    description: "Register a custom theme compatible with the 'publish_article' tool to publish an article to '微信公众号'.",
+    description:
+        "Register a custom theme compatible with the 'publish_article' tool to publish an article to '微信公众号'.",
     inputSchema: {
         type: "object",
         properties: {
@@ -23,7 +33,8 @@ export const REGISTER_THEME_SCHEMA = {
 
 export const REMOVE_THEME_SCHEMA = {
     name: "remove_theme",
-    description: "Remove a custom theme compatible with the 'publish_article' tool to publish an article to '微信公众号'.",
+    description:
+        "Remove a custom theme compatible with the 'publish_article' tool to publish an article to '微信公众号'.",
     inputSchema: {
         type: "object",
         properties: {
@@ -75,6 +86,9 @@ export async function registerTheme(name: string, path: string) {
         const content = await response.text();
         configStore.addThemeToConfig(name, content);
     } else {
+        if (globalStates.isSSE) {
+            throw new Error("Registering theme from local file is not supported in SSE mode.");
+        }
         const normalizePath = getNormalizeFilePath(path);
         const content = await fs.readFile(normalizePath, "utf-8");
         configStore.addThemeToConfig(name, content);
