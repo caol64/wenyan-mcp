@@ -12,8 +12,8 @@ importers:
         specifier: 0.6.0
         version: 0.6.0
       '@wenyan-md/core':
-        specifier: ^2.0.2
-        version: 2.0.2(form-data-encoder@4.1.0)(formdata-node@6.0.3)(jsdom@27.4.0(@noble/hashes@1.8.0))
+        specifier: ^2.0.6
+        version: 2.0.6(form-data-encoder@4.1.0)(formdata-node@6.0.3)(jsdom@27.4.0(@noble/hashes@1.8.0))
       eventsource:
         specifier: ^4.1.0
         version: 4.1.0
@@ -39,9 +39,6 @@ importers:
       '@types/node':
         specifier: ^24.3.0
         version: 24.10.7
-      '@types/uuid':
-        specifier: ^11.0.0
-        version: 11.0.0
       dotenv-cli:
         specifier: ^10.0.0
         version: 10.0.0
@@ -122,12 +119,8 @@ packages:
   '@types/node@24.10.7':
     resolution: {integrity: sha512-+054pVMzVTmRQV8BhpGv3UyfZ2Llgl8rdpDTon+cUH9+na0ncBVXj3wTUKh14+Kiz18ziM3b4ikpP5/Pc0rQEQ==}
 
-  '@types/uuid@11.0.0':
-    resolution: {integrity: sha512-HVyk8nj2m+jcFRNazzqyVKiZezyhDKrGUA3jlEcg/nZ6Ms+qHwocba1Y/AaVaznJTAM9xpdFSh+ptbNrhOGvZA==}
-    deprecated: This is a stub types definition. uuid provides its own type definitions, so you do not need this installed.
-
-  '@wenyan-md/core@2.0.2':
-    resolution: {integrity: sha512-Q7CcD8lc3XZp6o5sDMBmh5iUMwKwNpPWeNZOVgWSlDlkmheC2AScPbDHdZB2+dMIVB6N4lUEcFOsZogjGHOg/Q==}
+  '@wenyan-md/core@2.0.6':
+    resolution: {integrity: sha512-1pX3qo8QDzKtIbb/h88hstv6rQZ1Qf3ReVw2yqOIgXLH3wBNKzXvDku/tH1+8xY+NN6e4h8Aslwc50DJiwbVsg==}
     peerDependencies:
       form-data-encoder: ^4.1.0
       formdata-node: ^6.0.3
@@ -561,11 +554,7 @@ snapshots:
     dependencies:
       undici-types: 7.16.0
 
-  '@types/uuid@11.0.0':
-    dependencies:
-      uuid: 13.0.0
-
-  '@wenyan-md/core@2.0.2(form-data-encoder@4.1.0)(formdata-node@6.0.3)(jsdom@27.4.0(@noble/hashes@1.8.0))':
+  '@wenyan-md/core@2.0.6(form-data-encoder@4.1.0)(formdata-node@6.0.3)(jsdom@27.4.0(@noble/hashes@1.8.0))':
     dependencies:
       css-tree: 3.1.0
       front-matter: 4.0.2

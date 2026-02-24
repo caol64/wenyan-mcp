@@ -41,22 +41,36 @@
 >
 > 如果与 AI 集成遇到问题，可以参考 [test/list.js](./test/list.js) 和 [test/publish.js](./test/publish.js) 中的完整调用示例。
 
-## 安装与集成
+## v2.0 新特性
+- **支持 SSE 模式**
+- **多租户支持 (Stateless)**：`publish_article` 工具优先使用传入的 `wechat_app_id` 和 `wechat_app_secret` 参数，不再强制依赖服务器环境变量。适合 SaaS 或多用户共享部署。
+- **文件上传接口 (Secure Upload)**：新增 `POST /upload` 接口，支持上传 Markdown 文件并返回临时 `file_id`。
+  - 解决 IP 限制：客户端上传文件 -> 服务器（在白名单 IP）获取内容 -> 发布到微信。
+  - 节省 Token：相比直接传输全文，使用 `file_id` 引用服务器上的临时文件更高效。
+  - 自动清理：上传的文件仅存储 10 分钟（可配置），之后自动销毁。
+- **HTTPS 支持**：支持 `--https` 启动参数，需配合 `SSL_KEY_PATH` 和 `SSL_CERT_PATH` 环境变量使用，保障传输安全。
+- **本地文件限制**：默认**禁用**本地文件访问（`--allow-local-files` 开启），以适应无状态容器化部署的安全需求。
 
-文颜 MCP Server 支持多种运行方式，请根据你的环境选择。
+## 运行和配置
 
-### 方式一：npm 安装（推荐）
+文颜 MCP Server 支持`stdio`和`sse`两种运行模式。
 
-直接安装到本地：
+### 1. stdio 模式（标准输入输出）
+
+这是 MCP 的默认运行模式，最适合 **本地客户端**（如 Claude Desktop, VS Code）直接集成。
+
+* **运行原理**：宿主程序（如 Claude）启动 MCP Server 作为一个子进程，通过标准输入（stdin）发送请求，通过标准输出（stdout）接收响应。
+* **适用场景**：本地 AI 开发环境、个人桌面端配置。
+
+#### 运行方式1: npm
 
 ```bash
+# 安装 npm 包
 npm install -g @wenyan-md/mcp
 ```
 
-**配置 MCP Client（如 Claude Desktop）：**
-
-在你的 MCP 配置文件中加入以下内容：
-
+* **配置示例（Claude Desktop）**：
+在 `claude_desktop_config.json` 中配置：
 ```json
 {
   "mcpServers": {
@@ -72,17 +86,16 @@ npm install -g @wenyan-md/mcp
 }
 ```
 
-### 方式二：Docker 运行（推荐）
+#### 运行方式2: Docker
 
 适合部署到服务器环境，或希望环境隔离的用户。
 
-**拉取镜像：**
-
 ```bash
+# 拉取镜像
 docker pull caol64/wenyan-mcp
 ```
 
-**配置 MCP Client：**
+* **配置示例（Claude Desktop）**：
 
 ```json
 {
@@ -111,43 +124,56 @@ docker pull caol64/wenyan-mcp
 > *   **环境变量 (`HOST_FILE_PATH`)**：必须与宿主机挂载的文件/图片目录路径保持一致。
 > *   **原理**：你的 Markdown 文件/文章内所引用的本地图片应放置在该目录中，Docker 会自动将其映射，使容器能够读取并上传。
 
-### 方式三：HTTP 模式 (新增)
+### 2. sse 模式（服务器发送事件）
 
-从 v2.0.0 开始，文颜 MCP Server 支持 HTTP SSE 模式，适合远程部署和 Kubernetes 环境。
+SSE 模式基于 HTTP 协议，允许 MCP Server 作为一个**独立的网络服务**运行。
 
-**启动 HTTP 服务器：**
+* **运行原理**：Server 启动一个 HTTP 端口，客户端通过 HTTP POST 发送指令，Server 通过 SSE 长连接实时推送响应数据。
+* **适用场景**：远程服务器部署、多客户端共享 Server、或者宿主环境不支持子进程管理时。
 
-```bash
-wenyan-mcp --http-port 3000
-```
-
-**或使用 Docker：**
+#### 运行方式1: npm
 
 ```bash
-docker run -d \
-  -p 3000:3000 \
-  -e WECHAT_APP_ID=your_app_id \
-  -e WECHAT_APP_SECRET=your_app_secret \
-  -v /your/host/file/path:/mnt/host-downloads \
-  -e HOST_FILE_PATH=/your/host/file/path \
-  --name wenyan-mcp \
-  caol64/wenyan-mcp --http-port 3000
+# 安装 npm 包
+npm install -g @wenyan-md/mcp
+# 启动 HTTP 服务器
+WECHAT_APP_ID=your_app_id WECHAT_APP_SECRET=your_app_secret wenyan-mcp --sse
 ```
 
-**配置 MCP Client：**
-
+* **配置示例（Claude Desktop）**：
+在 `claude_desktop_config.json` 中配置：
 ```json
 {
   "mcpServers": {
-    "wenyan-mcp-http": {
-      "name": "公众号助手 (HTTP)",
+    "wenyan-mcp": {
+      "name": "公众号助手",
       "baseUrl": "http://localhost:3000/sse"
     }
   }
 }
 ```
 
-**Kubernetes 部署：**
+#### 运行方式2: Docker
+
+```bash
+# 拉取镜像
+docker pull caol64/wenyan-mcp
+# 启动 HTTP 服务器
+docker run -d \
+  --rm
+  -p 3000:3000 \
+  -e WECHAT_APP_ID=your_app_id \
+  -e WECHAT_APP_SECRET=your_app_secret \
+  -v /your/host/file/path:/mnt/host-downloads \
+  -e HOST_FILE_PATH=/your/host/file/path \
+  --name wenyan-mcp \
+  caol64/wenyan-mcp --sse
+```
+
+* **配置示例（Claude Desktop）**：
+同`npm`运行时配置。
+
+#### 运行方式3: Kubernetes
 
 本项目提供了一份标准的 Kubernetes 部署清单，包含 Deployment 和 Service 配置。
 
@@ -158,45 +184,10 @@ kubectl apply -f k8s/deployment.yaml
 该配置默认开启了 HTTP Stateless 模式，并配置了 Liveness/Readiness 探针以确保服务高可用。
 请根据实际情况修改 `image` 版本或调整资源限制。
 
-**优势：**
-- 支持远程调用，适合云部署
-- 多个客户端可连接同一服务器
-- 减少 kubectl exec 开销
-- 兼容 OpenClaw、Claude Desktop 等 MCP 客户端
+* **配置示例（Claude Desktop）**：
+同`npm`运行时配置。
 
-**增强功能（v2.0.0+）：**
-- 根端点 `/` 返回服务器信息
-- 自动 CORS 头支持，方便前端集成
-- 请求日志记录，便于调试
-- 健康检查端点 `/health`
-- 结构化 JSON 日志，便于监控
-- 可选的 API 密钥认证（HTTP_API_KEY 环境变量）
-- 可配置的 CORS 来源（HTTP_CORS_ORIGIN 环境变量）
-- 可调整的日志级别（HTTP_LOG_LEVEL 环境变量）
-- 改进的错误处理与适当的 HTTP 状态码
-
-**v2.0.1 新特性（无状态与安全增强）：**
-- **多租户支持 (Stateless)**：`publish_article` 工具优先使用传入的 `wechat_app_id` 和 `wechat_app_secret` 参数，不再强制依赖服务器环境变量。适合 SaaS 或多用户共享部署。
-- **文件上传接口 (Secure Upload)**：新增 `POST /upload` 接口，支持上传 Markdown 文件并返回临时 `file_id`。
-  - 解决 IP 限制：客户端上传文件 -> 服务器（在白名单 IP）获取内容 -> 发布到微信。
-  - 节省 Token：相比直接传输全文，使用 `file_id` 引用服务器上的临时文件更高效。
-  - 自动清理：上传的文件仅存储 10 分钟（可配置），之后自动销毁。
-- **HTTPS 支持**：支持 `--https` 启动参数，需配合 `SSL_KEY_PATH` 和 `SSL_CERT_PATH` 环境变量使用，保障传输安全。
-- **本地文件限制**：默认**禁用**本地文件访问（`--allow-local-files` 开启），以适应无状态容器化部署的安全需求。
-
-**v2.0.1 启动示例 (Docker)：**
-
-```bash
-docker run -d \
-  -p 3000:3000 \
-  -e HTTP_API_KEY=your_gateway_secret \
-  --name wenyan-mcp \
-  msga/wenyan-mcp:2.0.1 \
-  --http-port 3000
-```
-*(注：v2.0.1 默认不挂载本地目录，所有文件建议通过 `/upload` 接口或 `content_url` 传入)*
-
-**高级配置：**
+#### 高级配置
 
 HTTP 服务器支持以下环境变量进行高级配置：
 
@@ -210,6 +201,7 @@ HTTP 服务器支持以下环境变量进行高级配置：
 
 ```bash
 docker run -d \
+  --rm
   -p 3000:3000 \
   -e WECHAT_APP_ID=your_app_id \
   -e WECHAT_APP_SECRET=your_app_secret \
@@ -218,7 +210,7 @@ docker run -d \
   -v /your/host/file/path:/mnt/host-downloads \
   -e HOST_FILE_PATH=/your/host/file/path \
   --name wenyan-mcp \
-  caol64/wenyan-mcp --http-port 3000
+  caol64/wenyan-mcp --sse
 ```
 
 **配置带认证的 MCP Client：**
