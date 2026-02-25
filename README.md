@@ -34,12 +34,19 @@
 
 ## 文颜 MCP Server 能做什么？
 
-本仓库是 **文颜的 MCP Server 版本**，基于模型上下文协议（Model Context Protocol），旨在让 AI 助手（如 Claude Desktop）具备自动排版和发布公众号文章的能力。
+本项目旨在打造 **"从 AI 思考到公众号发布"** 的最后一公里解决方案。
 
-建议您先阅读以下具体用例以了解使用场景：
+通过实现 Model Context Protocol (MCP) 协议，我们将文颜（Wenyan）的排版能力赋予了 Claude Desktop 等先进的 AI 客户端。现在，你的 AI 助手不仅仅是一个聊天机器人，更是一个专业的 **公众号运营专家**。
 
--   [让 AI 帮你管理公众号的排版和发布](https://babyno.top/posts/2025/06/let-ai-help-you-manage-your-gzh-layout-and-publishing/)
--   [Moraya MCP 使用案例：微信公众号全托管](https://github.com/zouwei/moraya/wiki/Moraya-MCP-%E4%BD%BF%E7%94%A8%E6%A1%88%E4%BE%8B%EF%BC%9A%E5%BE%AE%E4%BF%A1%E5%85%AC%E4%BC%97%E5%8F%B7%E5%85%A8%E6%89%98%E7%AE%A1)
+**它能帮你实现：**
+1.  **Markdown 到 微信排版 的无感转换**：告别第三方编辑器的反复复制粘贴。
+2.  **所见即所得的样式控制**：通过自然语言指令（如“使用橙色主题”）控制排版风格。
+3.  **全链路自动化**：在一个会话窗口内完成 选题 -> 写作 -> 排版 -> 推送草稿 的全过程。
+
+**实战演示**：
+*   [让 AI 帮你管理公众号的排版和发布](https://babyno.top/posts/2025/06/let-ai-help-you-manage-your-gzh-layout-and-publishing/)
+*   [Moraya MCP 使用案例：微信公众号全托管](https://github.com/zouwei/moraya/wiki/Moraya-MCP-%E4%BD%BF%E7%94%A8%E6%A1%88%E4%BE%8B%EF%BC%9A%E5%BE%AE%E4%BF%A1%E5%85%AC%E4%BC%97%E5%8F%B7%E5%85%A8%E6%89%98%E7%AE%A1)
+
 
 
 ## 功能特性
