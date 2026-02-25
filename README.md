@@ -12,7 +12,7 @@
 
 ## 简介
 
-**文颜（Wenyan）** 是一款多平台 Markdown 排版与发布工具，支持将 Markdown 一键转换并发布至：
+**[文颜（Wenyan）](https://wenyan.yuzhi.tech)** 是一款多平台 Markdown 排版与发布工具，支持将 Markdown 一键转换并发布至：
 
 -   微信公众号
 -   知乎
@@ -29,48 +29,65 @@
 -   [跨平台桌面版](https://github.com/caol64/wenyan-pc) - Windows/Linux
 -   [CLI 版本](https://github.com/caol64/wenyan-cli) - 命令行 / CI 自动化发布
 -   👉 [MCP 版本](https://github.com/caol64/wenyan-mcp) - 本项目
+-   [UI 库](https://github.com/caol64/wenyan-ui) - 桌面应用和 Web App 共用的 UI 层封装
 -   [核心库](https://github.com/caol64/wenyan-core) - 嵌入 Node / Web 项目
+
+## 文颜 MCP Server 能做什么？
 
 本仓库是 **文颜的 MCP Server 版本**，基于模型上下文协议（Model Context Protocol），旨在让 AI 助手（如 Claude Desktop）具备自动排版和发布公众号文章的能力。
 
--   **与 AI 深度集成**：[让 AI 帮你管理公众号的排版和发布](https://babyno.top/posts/2025/06/let-ai-help-you-manage-your-gzh-layout-and-publishing/)
+建议您先阅读以下具体用例以了解使用场景：
 
-<video src="https://github.com/user-attachments/assets/2c355f76-f313-48a7-9c31-f0f69e5ec207"></video>
+-   [让 AI 帮你管理公众号的排版和发布](https://babyno.top/posts/2025/06/let-ai-help-you-manage-your-gzh-layout-and-publishing/)
+-   [Moraya MCP 使用案例：微信公众号全托管](https://github.com/zouwei/moraya/wiki/Moraya-MCP-%E4%BD%BF%E7%94%A8%E6%A1%88%E4%BE%8B%EF%BC%9A%E5%BE%AE%E4%BF%A1%E5%85%AC%E4%BC%97%E5%8F%B7%E5%85%A8%E6%89%98%E7%AE%A1)
 
-> [!TIP]
->
-> 如果与 AI 集成遇到问题，可以参考 [test/list.js](./test/list.js) 和 [test/publish.js](./test/publish.js) 中的完整调用示例。
 
-## v2.0 新特性
-- **支持 SSE 模式**
-- **多租户支持 (Stateless)**：`publish_article` 工具优先使用传入的 `wechat_app_id` 和 `wechat_app_secret` 参数，不再强制依赖服务器环境变量。适合 SaaS 或多用户共享部署。
-- **文件上传接口 (Secure Upload)**：新增 `POST /upload` 接口，支持上传 Markdown 文件并返回临时 `file_id`。
-  - 解决 IP 限制：客户端上传文件 -> 服务器（在白名单 IP）获取内容 -> 发布到微信。
-  - 节省 Token：相比直接传输全文，使用 `file_id` 引用服务器上的临时文件更高效。
-  - 自动清理：上传的文件仅存储 10 分钟（可配置），之后自动销毁。
-- **HTTPS 支持**：支持 `--https` 启动参数，需配合 `SSL_KEY_PATH` 和 `SSL_CERT_PATH` 环境变量使用，保障传输安全。
-- **本地文件限制**：默认**禁用**本地文件访问（`--allow-local-files` 开启），以适应无状态容器化部署的安全需求。
+## 功能特性
+
+### Markdown 原生驱动
+- 原生支持标准 Markdown 语法
+- 支持 FrontMatter 元数据解析
+- 代码块高亮
+- 数学公式渲染
+- 图片自动处理与资产上传
+
+### 公众号主题排版
+- 内置多套公众号主题
+- 支持自定义 CSS
+- 支持代码块样式独立配置
+- 自动适配微信公众号排版规范
+- 保证样式稳定、不被微信过滤
+
+### MCP 原生集成（AI 可调用）
+- 提供标准 MCP Tool 接口
+- 支持 AI 自动调用：
+  - 渲染 Markdown
+  - 上传图片资产
+  - 发布草稿
+- 明确的工具调用规范（upload_asset → publish_article）
+- 支持多步骤自动编排
 
 ## 运行和配置
 
-文颜 MCP Server 支持`stdio`和`sse`两种运行模式。
+文颜 MCP Server 支持`stdio`（本地管道）和`sse`（HTTP 服务）两种运行模式。
 
-### 1. stdio 模式（标准输入输出）
+### 1. stdio 模式（推荐）
 
 这是 MCP 的默认运行模式，最适合 **本地客户端**（如 Claude Desktop, VS Code）直接集成。
 
-* **运行原理**：宿主程序（如 Claude）启动 MCP Server 作为一个子进程，通过标准输入（stdin）发送请求，通过标准输出（stdout）接收响应。
-* **适用场景**：本地 AI 开发环境、个人桌面端配置。
+#### 方式 A: npm 直接运行
 
-#### 运行方式1: npm
+无需 Docker，直接利用本地 Node.js 环境。
 
 ```bash
-# 安装 npm 包
+# 1. 全局安装
 npm install -g @wenyan-md/mcp
+# 2. 获取安装路径 (可选，如果 command 找不到命令时使用)
+which wenyan-mcp
 ```
 
-* **配置示例（Claude Desktop）**：
-在 `claude_desktop_config.json` 中配置：
+* **Claude Desktop 配置 (claude_desktop_config.json)：**：
+
 ```json
 {
   "mcpServers": {
@@ -86,16 +103,15 @@ npm install -g @wenyan-md/mcp
 }
 ```
 
-#### 运行方式2: Docker
+#### 方式 B: Docker (Stdio)
 
-适合部署到服务器环境，或希望环境隔离的用户。
+适合不希望安装 Node.js 环境的用户。
 
 ```bash
-# 拉取镜像
-docker pull caol64/wenyan-mcp
+docker pull caol64/wenyan-mcp:latest
 ```
 
-* **配置示例（Claude Desktop）**：
+* **Claude Desktop 配置：**：
 
 ```json
 {
@@ -124,24 +140,44 @@ docker pull caol64/wenyan-mcp
 > *   **环境变量 (`HOST_FILE_PATH`)**：必须与宿主机挂载的文件/图片目录路径保持一致。
 > *   **原理**：你的 Markdown 文件/文章内所引用的本地图片应放置在该目录中，Docker 会自动将其映射，使容器能够读取并上传。
 
-### 2. sse 模式（服务器发送事件）
+### 2. SSE 模式 (HTTP 服务)
 
-SSE 模式基于 HTTP 协议，允许 MCP Server 作为一个**独立的网络服务**运行。
+基于 HTTP/SSE 协议运行，适合`远程服务器部署`或`多客户端共享`。支持文件上传和无状态运行。
 
-* **运行原理**：Server 启动一个 HTTP 端口，客户端通过 HTTP POST 发送指令，Server 通过 SSE 长连接实时推送响应数据。
-* **适用场景**：远程服务器部署、多客户端共享 Server、或者宿主环境不支持子进程管理时。
+* **适用场景**：将服务部署在云服务器、Kubernetes，或使用 Web 版 MCP 客户端。
 
-#### 运行方式1: npm
+#### 运行方式 A: npm 直接运行
 
 ```bash
-# 安装 npm 包
+# 全局安装
 npm install -g @wenyan-md/mcp
 # 启动 HTTP 服务器
 WECHAT_APP_ID=your_app_id WECHAT_APP_SECRET=your_app_secret wenyan-mcp --sse
 ```
 
-* **配置示例（Claude Desktop）**：
-在 `claude_desktop_config.json` 中配置：
+#### 运行方式B: Docker 启动 (推荐)
+
+```bash
+# 拉取镜像
+docker pull caol64/wenyan-mcp:latest
+# 启动 HTTP 服务器
+docker run -d \
+  --rm
+  -p 3000:3000 \
+  -e WECHAT_APP_ID=your_app_id \
+  -e WECHAT_APP_SECRET=your_app_secret \
+  --name wenyan-mcp \
+  caol64/wenyan-mcp --sse
+```
+
+启动后，服务将暴露以下端点：
+- SSE 连接: http://localhost:3000/sse
+- 文件上传: http://localhost:3000/upload
+
+**如何连接 SSE 服务？**：
+
+在支持 SSE 的 Agent 平台中配置：
+
 ```json
 {
   "mcpServers": {
@@ -153,27 +189,16 @@ WECHAT_APP_ID=your_app_id WECHAT_APP_SECRET=your_app_secret wenyan-mcp --sse
 }
 ```
 
-#### 运行方式2: Docker
+**文件上传说明 (SSE 模式)**
 
-```bash
-# 拉取镜像
-docker pull caol64/wenyan-mcp
-# 启动 HTTP 服务器
-docker run -d \
-  --rm
-  -p 3000:3000 \
-  -e WECHAT_APP_ID=your_app_id \
-  -e WECHAT_APP_SECRET=your_app_secret \
-  -v /your/host/file/path:/mnt/host-downloads \
-  -e HOST_FILE_PATH=/your/host/file/path \
-  --name wenyan-mcp \
-  caol64/wenyan-mcp --sse
-```
+在 SSE 模式下，由于服务可能运行在远程服务器，无法直接读取客户端本地文件。请按以下流程操作：
 
-* **配置示例（Claude Desktop）**：
-同`npm`运行时配置。
+- 图片资源：使用 upload_asset 工具上传 Base64 图片，获取 asset_id。
+- Markdown 文件：
+  - 方式一：将文件内容直接作为 content 参数传入 publish_article。
+  - 方式二：先调用 /upload 接口上传文件，获取 file_id，再传入 publish_article。
 
-#### 运行方式3: Kubernetes
+### Kubernetes 部署
 
 本项目提供了一份标准的 Kubernetes 部署清单，包含 Deployment 和 Service 配置。
 
@@ -182,12 +207,10 @@ kubectl apply -f k8s/deployment.yaml
 ```
 
 该配置默认开启了 HTTP Stateless 模式，并配置了 Liveness/Readiness 探针以确保服务高可用。
+
 请根据实际情况修改 `image` 版本或调整资源限制。
 
-* **配置示例（Claude Desktop）**：
-同`npm`运行时配置。
-
-#### 高级配置
+### 高级配置
 
 HTTP 服务器支持以下环境变量进行高级配置：
 
@@ -207,8 +230,6 @@ docker run -d \
   -e WECHAT_APP_SECRET=your_app_secret \
   -e HTTP_API_KEY=your_secret_api_key \
   -e HTTP_CORS_ORIGIN=https://yourdomain.com \
-  -v /your/host/file/path:/mnt/host-downloads \
-  -e HOST_FILE_PATH=/your/host/file/path \
   --name wenyan-mcp \
   caol64/wenyan-mcp --sse
 ```

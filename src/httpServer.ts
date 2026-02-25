@@ -5,8 +5,10 @@ import url from "node:url";
 import { log } from "node:console";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { createServer } from "./mcpServer.js";
-import { handleUploadRequest } from "./upload.js";
+import { handleUploadRequest, initUploadSystem } from "./upload.js";
 import { globalStates } from "./utils.js";
+
+initUploadSystem();
 
 /**
  * HTTP server configuration

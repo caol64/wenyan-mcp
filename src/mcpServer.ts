@@ -9,12 +9,8 @@ import {
     removeTheme,
 } from "./theme.js";
 import { PUBLISH_ARTICLE_SCHEMA, PUBLISH_ARTICLE_SSE_SCHEMA, publishArticle } from "./publish.js";
-import path from "node:path";
-import os from "node:os";
 import { globalStates } from "./utils.js";
 import { saveBase64Image, UPLOAD_ASSET_SCHEMA } from "./upload.js";
-
-const UPLOAD_DIR = path.join(os.tmpdir(), "wenyan-mcp-uploads");
 
 /**
  * Create and configure an MCP server instance.
