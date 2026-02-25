@@ -113,7 +113,7 @@ export const UPLOAD_ASSET_SCHEMA = {
     name: "upload_asset",
     description: `
 Upload an image file via Base64 encoding.
-REQUIRED when referencing local images in SSE mode.
+REQUIRED when referencing local images.
 Process:
 1. Read the local image file.
 2. Call this tool with the filename and base64 content.

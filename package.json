@@ -36,6 +36,7 @@
     "test:publish": "pnpm build && dotenv -e .env.test -- node ./tests/publish.js",
     "test:register": "pnpm build && dotenv -e .env.test -- node ./tests/registerTheme.js",
     "test:remove": "pnpm build && dotenv -e .env.test -- node ./tests/removeTheme.js",
+    "startSSE": "pnpm build && dotenv -e .env.test -- node ./dist/index.js --sse",
     "upgrade:core": "pnpm update @wenyan-md/core",
     "prepublishOnly": "pnpm upgrade:core && pnpm build"
   },

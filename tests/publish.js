@@ -74,6 +74,7 @@ async function runMcp() {
         const llmClient = new OpenAI({ apiKey: LLM_API_KEY, baseURL: LLM_BASE_URL });
         // 使用文件路径作为输入
         const content = "./tests/publish.md";
+        // const content = "https://raw.githubusercontent.com/caol64/wenyan-core/refs/heads/main/test/publish_test.md";
         // 使用文件内容作为输入
         // let content = await fs.readFile(path.resolve("./tests/publish.md"), "utf-8");
         // content = content.replace(/cover: wenyan.jpg/g, `cover: ${path.resolve("./tests/wenyan.jpg")}`);

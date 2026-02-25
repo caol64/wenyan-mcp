@@ -325,19 +325,98 @@ AI回复：
 是否需要我帮您生成一篇发布文案或封面建议？ 😊
 ```
 
+如果是 SSE 模式，且文档中包含本地图片，这样对 AI 说：
+
+> 使用phycat主题将这篇文章发布到微信公众号：./tests/publish.md
+> 
+> 请注意，先将图片作为资产上传
+
 ## 关于图片自动上传
 
-支持以下图片来源：
+文颜 MCP Server 会自动处理 Markdown 中的图片链接，将其上传至微信素材库并替换为微信永久链接。根据运行模式不同，支持的图片来源略有差异。
 
--   本地路径（如：`/Users/lei/Downloads/result_image.jpg`）
--   网络路径（如：`https://example.com/image.jpg`）
+### 1. 通用支持 (所有模式)
 
-## 环境变量说明
+无论在哪种模式下，都支持标准的网络图片链接：
 
-无论使用哪种方式，都需要配置以下环境变量以连接微信公众号平台：
+*   **网络路径**：`https://example.com/image.jpg`
+    *   Server 会自动下载该图片并上传到微信服务器。
 
--   `WECHAT_APP_ID`：微信公众号平台的 App ID
--   `WECHAT_APP_SECRET`：微信公众号平台的 App Secret
+### 2. Stdio 模式 (本地进程)
+
+在此模式下，MCP Server 与您的客户端（如 Claude Desktop）运行在同一台机器上，可以直接读取本地文件。
+
+*   **本地绝对路径**：`/Users/username/Downloads/image.png`
+*   **本地相对路径**：`./images/screenshot.png` (相对于md文件所在目录)
+
+> [!NOTE]
+> 
+> **Docker 用户注意**：
+> 如果您使用 Docker 运行 Stdio 模式，必须通过 `-v` 参数将宿主机的图片目录挂载到容器内，具体看说明。
+
+### 3. SSE 模式 (远程/无状态服务)
+
+在此模式下，Server 通常运行在远程服务器或隔离环境中，**无法直接读取**您本地电脑上的文件路径。您需要先通过工具将图片“推送”给服务器，流程如下：
+
+#### 步骤 A: 上传图片资源
+
+SSE 模式提供了一个专用工具 `upload_asset`，用于接收 Base64 编码的图片数据。
+
+1.  **AI 助手读取本地文件**：将本地图片转换为 Base64 字符串。
+2.  **调用工具**：调用 `upload_asset`，传入文件名和 Base64 数据。
+3.  **获取 ID**：Server 返回一个临时 `file_id` (例如 `img-uuid-123.png`)。
+
+#### 步骤 B: 在 Markdown 中引用
+
+在调用 `publish_article` 发布文章时，请将 Markdown 中的本地图片路径替换为 **`asset://` 协议**：
+
+*   **原始 Markdown**：
+    ```markdown
+    ![示例图](/Users/me/desktop/demo.png)
+    ```
+*   **修改后的 Markdown (发送给 Server)**：
+    ```markdown
+    ![示例图](asset://img-uuid-123.png)
+    ```
+
+> [!NOTE]
+> 
+> **自动化提示**：
+> 现代 AI 助手（如 Claude）在使用本工具时，通常能够自动理解并执行 "读取本地文件 -> 转Base64上传 -> 替换链接 -> 发布" 这一完整的 Agent 工作流，无需人工干预。
+
+## 公众号配置与鉴权
+
+为了连接微信公众号平台，Server 需要获取 `App ID` 和 `App Secret`。本项目支持 **全局环境变量** 和 **动态参数传入** 两种配置方式，以适应不同的部署场景。
+
+### 1. 全局配置（单租户模式）
+
+**适用场景**：个人使用、本地 Stdio 模式、或者私有部署的单账号服务。
+
+通过环境变量配置后，Server 将默认使用该凭证处理所有请求。
+
+| 变量名 | 说明 |
+| :--- | :--- |
+| `WECHAT_APP_ID` | **必填** (若未通过参数传入) - 微信公众号平台 App ID |
+| `WECHAT_APP_SECRET` | **必填** (若未通过参数传入) - 微信公众号平台 App Secret |
+
+### 2. 动态传参（多租户/无状态模式）
+
+**适用场景**：SSE 模式、公共服务部署、或同一个 Server 需要管理多个公众号。
+
+在 **SSE 模式** 下，`publish_article` 工具额外开放了认证参数。客户端（或 AI Agent）可以在每次调用发布工具时，动态传入凭证。
+
+*   **工作原理**：
+    *   Server 启动时**无需**配置 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET` 环境变量。
+    *   在调用 `publish_article` 时，将凭证作为参数传入。
+    *   Server 将优先使用本次请求传入的凭证，实现**无状态 (Stateless)** 运行。
+
+*   **参数优先级**：
+    `工具参数 (arguments)` > `环境变量 (env)`
+
+> [!IMPORTANT]
+> 
+> **安全提示**：
+> 在多租户模式下，建议配合 `HTTP_API_KEY` 使用，以确保只有授权的客户端（Agent）才能调用服务，防止服务被滥用。
 
 ## Markdown Frontmatter 说明（必读）
 
@@ -358,7 +437,7 @@ cover: /Users/xxx/image.jpg
     -   如果正文有至少一张图片，可省略，此时将使用其中一张作为封面
     -   如果正文无图片，则必须提供 cover
 
-## 微信公众号 IP 白名单
+## 公众号 IP 白名单
 
 > [!IMPORTANT]
 >

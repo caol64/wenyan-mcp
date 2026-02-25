@@ -158,12 +158,40 @@ export async function publishArticle(
     };
 }
 
-function resolveAssetPaths(markdown: string): string {
-    // 匹配 pattern: ](asset://xxxxx)
-    // 这里的 asset:// 后面紧跟的就是 file_id
-    return markdown.replace(/\]\(asset:\/\/([^\)]+)\)/g, (match, fileId) => {
+/**
+ * 解析并替换 Markdown 内容中的 asset:// 协议路径
+ * 1. 处理 Markdown 正文图片: ![alt](asset://id)
+ * 2. 处理 Frontmatter 封面: cover: asset://id
+ */
+export function resolveAssetPaths(markdown: string): string {
+    if (!globalStates.isSSE) {
+        return markdown; // 仅在 SSE 模式下处理 asset:// 路径
+    }
+    let processed = markdown;
+
+    // --- 第一步：处理 Frontmatter 中的 cover 字段 ---
+    // 匹配规则说明：
+    // (^cover:\s*)   -> 捕获组1：以 cover: 开头，允许后面有空格
+    // (["']?)        -> 捕获组2：允许有可选的引号 (" 或 ')
+    // asset:\/\/     -> 匹配协议头
+    // ([^"'\n\r]+)   -> 捕获组3：文件名 (直到遇到引号或换行符)
+    // (["']?)        -> 捕获组4：可选的闭合引号
+    // m 标志         -> 多行模式，确保 ^ 能匹配每一行的行首
+    processed = processed.replace(
+        /(^cover:\s*)(["']?)asset:\/\/([^"'\n\r]+)(["']?)/gm,
+        (match, prefix, quoteOpen, fileId, quoteClose) => {
+            const absolutePath = path.join(UPLOAD_DIR, fileId);
+            // 保持原有的格式（包括引号和缩进）
+            return `${prefix}${quoteOpen}${absolutePath}${quoteClose}`;
+        },
+    );
+
+    // --- 第二步：处理 Markdown 正文中的图片链接 ---
+    // 匹配规则：](asset://xxxxx)
+    processed = processed.replace(/\]\(asset:\/\/([^\)]+)\)/g, (match, fileId) => {
         const absolutePath = path.join(UPLOAD_DIR, fileId);
-        // 返回绝对路径，wenyan-md 渲染器通常能处理本地绝对路径
         return `](${absolutePath})`;
     });
+
+    return processed;
 }
