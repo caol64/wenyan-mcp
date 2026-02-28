@@ -2,7 +2,7 @@
 	"servers": {
 		"wenyan-mcp": {
 			"url": "http://localhost:3000/sse",
-			"type": "http"
+			"type": "sse"
 		}
 	},
 	"inputs": []
