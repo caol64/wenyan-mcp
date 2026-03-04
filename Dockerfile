@@ -1,28 +1,12 @@
 FROM node:24-alpine AS builder
 
 ARG NPM_REGISTRY=https://registry.npmjs.org/
-
-WORKDIR /app
-
-RUN npm config set registry ${NPM_REGISTRY} && npm install -g pnpm@10.7.1
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-
-COPY tsconfig.json ./
-COPY src ./src
-RUN pnpm exec tsc --build
-
-FROM node:24-alpine AS runner
-ENV NODE_ENV=production
 ENV CONTAINERIZED=1
 ENV CONTAINER_FILE_PATH=/mnt/host-downloads
 
 WORKDIR /app
 
-COPY --from=builder /app/node_modules ./node_modules/
-COPY --from=builder /app/dist ./dist/
+RUN npm config set registry ${NPM_REGISTRY}
+RUN npm install -g @wenyan-md/mcp && npm cache clean --force
 
-# Create upload directory and set permissions if needed
-RUN mkdir -p /tmp/wenyan-mcp-uploads && chmod 777 /tmp/wenyan-mcp-uploads
-
-ENTRYPOINT ["node", "dist/index.js"]
+ENTRYPOINT ["wenyan-mcp"]
