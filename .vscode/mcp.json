@@ -1,9 +1,9 @@
 {
-	"servers": {
-		"wenyan-mcp": {
-			"url": "http://localhost:3000/sse",
-			"type": "sse"
-		}
-	},
-	"inputs": []
+  "servers": {
+    "wenyan-mcp": {
+      "command": "node",
+      "args": ["dist/index.js", "--server", "http://localhost:3000"]
+    }
+  },
+  "inputs": []
 }

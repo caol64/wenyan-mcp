@@ -1,16 +1,10 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import {
-    LIST_THEMES_SCHEMA,
-    listThemes,
-    REGISTER_THEME_SCHEMA,
-    registerTheme,
-    REMOVE_THEME_SCHEMA,
-    removeTheme,
-} from "./theme.js";
-import { PUBLISH_ARTICLE_SCHEMA, PUBLISH_ARTICLE_SSE_SCHEMA, publishArticle } from "./publish.js";
-import { globalStates } from "./utils.js";
-import { saveBase64Image, UPLOAD_ASSET_SCHEMA } from "./upload.js";
+import { LIST_THEMES_SCHEMA, REGISTER_THEME_SCHEMA, REMOVE_THEME_SCHEMA } from "./theme.js";
+import { PUBLISH_ARTICLE_SCHEMA, publishArticle } from "./publish.js";
+import pkg from "../package.json" with { type: "json" };
+import { buildMcpResponse, globalStates } from "./utils.js";
+import { addTheme, listThemes, removeTheme } from "@wenyan-md/core/wrapper";
 
 /**
  * Create and configure an MCP server instance.
@@ -19,7 +13,7 @@ export function createServer(): Server {
     const server = new Server(
         {
             name: "wenyan-mcp",
-            version: "2.0.1",
+            version: pkg.version,
         },
         {
             capabilities: {
@@ -36,21 +30,9 @@ export function createServer(): Server {
      * Exposes a single "publish_article" tool that lets clients publish new article.
      */
     server.setRequestHandler(ListToolsRequestSchema, async () => {
-        if (globalStates.isSSE) {
-            return {
-                tools: [
-                    PUBLISH_ARTICLE_SSE_SCHEMA,
-                    UPLOAD_ASSET_SCHEMA,
-                    LIST_THEMES_SCHEMA,
-                    REGISTER_THEME_SCHEMA,
-                    REMOVE_THEME_SCHEMA,
-                ],
-            };
-        } else {
-            return {
-                tools: [PUBLISH_ARTICLE_SCHEMA, LIST_THEMES_SCHEMA, REGISTER_THEME_SCHEMA, REMOVE_THEME_SCHEMA],
-            };
-        }
+        return {
+            tools: [PUBLISH_ARTICLE_SCHEMA, LIST_THEMES_SCHEMA, REGISTER_THEME_SCHEMA, REMOVE_THEME_SCHEMA],
+        };
     });
 
     /**
@@ -58,42 +40,57 @@ export function createServer(): Server {
      * Publish a new article with the provided title and content, and returns success message.
      */
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
-        if (request.params.name === "publish_article") {
-            const args = request.params.arguments || {};
-            const appId = args.wechat_app_id ? String(args.wechat_app_id) : undefined;
-            const appSecret = args.wechat_app_secret ? String(args.wechat_app_secret) : undefined;
-            const content = String(args.content || "");
-            const contentUrl = String(args.content_url || "");
-            const file = String(args.file || "");
-            const fileId = String(args.file_id || "");
-            const themeId = String(args.theme_id || "");
-            return await publishArticle(fileId, contentUrl, file, content, themeId, appId, appSecret);
-        } else if (request.params.name === "list_themes") {
-            return listThemes();
-        } else if (request.params.name === "register_theme") {
-            return await registerTheme(
-                String(request.params.arguments?.name || ""),
-                String(request.params.arguments?.path || ""),
-            );
-        } else if (request.params.name === "remove_theme") {
-            return removeTheme(String(request.params.arguments?.name || ""));
-        } else if (request.params.name === "upload_asset") {
-            const filename = String(request.params.arguments?.filename || "");
-            const base64 = String(request.params.arguments?.base64 || "");
-            if (!filename || !base64) {
-                throw new Error("Filename and base64 content are required.");
+        try {
+            if (request.params.name === "publish_article") {
+                if (globalStates.isClientMode && !globalStates.serverUrl) {
+                    throw new Error("Missing server URL. Usage: --server <server_url>");
+                }
+                const args = request.params.arguments || {};
+                const content = String(args.content || "");
+                const contentUrl = String(args.content_url || "");
+                const file = String(args.file || "");
+                const themeId = String(args.theme_id || "");
+                return await publishArticle(contentUrl, file, content, themeId, pkg.version);
+            } else if (request.params.name === "list_themes") {
+                const themes = await listThemes();
+                const builtinThemes = themes.filter((theme) => theme.isBuiltin);
+                const customThemes = themes.filter((theme) => !theme.isBuiltin);
+                return {
+                    content: [
+                        ...builtinThemes.map((theme) => ({
+                            type: "text",
+                            text: JSON.stringify({
+                                id: theme.id,
+                                name: theme.name,
+                                description: theme.description,
+                            }),
+                        })),
+                        ...customThemes.map((theme) => ({
+                            type: "text",
+                            text: JSON.stringify({
+                                id: theme.id,
+                                name: theme.name ?? theme.id,
+                                description: theme.description ?? "自定义主题，暂无描述。",
+                            }),
+                        })),
+                    ],
+                };
+            } else if (request.params.name === "register_theme") {
+                const name = String(request.params.arguments?.name || "");
+                const path = String(request.params.arguments?.path || "");
+                await addTheme(name, path);
+                return buildMcpResponse(`Theme "${name}" has been added successfully.`);
+            } else if (request.params.name === "remove_theme") {
+                const name = String(request.params.arguments?.name || "");
+                await removeTheme(name);
+                return buildMcpResponse(`Theme "${name}" has been removed successfully.`);
             }
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(await saveBase64Image(filename, base64)),
-                    },
-                ],
-            };
-        }
 
-        throw new Error("Unknown tool");
+            throw new Error("Unknown tool");
+        } catch (error: any) {
+            console.error(`[MCP Tool Error] (${request.params.name}):`, error.message);
+            return buildMcpResponse(`执行工具失败: ${error.message}`);
+        }
     });
 
     return server;

@@ -37,9 +37,14 @@ async function runMcp() {
     //         "caol64/wenyan-mcp",
     //     ],
     // });
+    // const transport = new StdioClientTransport({
+    //     command: "node",
+    //     args: ["--env-file", ".env.test", "dist/index.js"],
+    // });
+
     const transport = new StdioClientTransport({
         command: "node",
-        args: ["--env-file", ".env.test", "dist/index.js"],
+        args: ["--env-file", ".env.test", "dist/index.js", "--server", "http://localhost:3000"],
     });
 
     const client = new Client(
