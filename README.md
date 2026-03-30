@@ -319,3 +319,8 @@ npx @modelcontextprotocol/inspector <command>
 ## License
 
 Apache License Version 2.0
+
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/caol64-wenyan-mcp).
+
