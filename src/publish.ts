@@ -27,11 +27,16 @@ export const PUBLISH_ARTICLE_SCHEMA = {
                 description:
                     "ID of the theme to use (e.g., default, orangeheart, rainbow, lapis, pie, maize, purple, phycat).",
             },
+            app_id: {
+                type: "string",
+                description:
+                    "AppID for the WeChat MP platform ('微信公众号').",
+            },
         },
     },
 } as const;
 
-export async function publishArticle(contentUrl: string, file: string, content: string, themeId: string, clientVersion?: string) {
+export async function publishArticle(contentUrl: string, file: string, content: string, themeId: string, appId?: string, clientVersion?: string) {
     let mediaId = "";
     const publishOptions = {
         file: file ? file : contentUrl,
@@ -43,10 +48,14 @@ export async function publishArticle(contentUrl: string, file: string, content: 
         apiKey: globalStates.apiKey,
         clientVersion,
         disableStdin: true,
+        appId: appId ? appId : undefined,
     };
     if(globalStates.isClientMode) {
         mediaId = await renderAndPublishToServer(content, publishOptions, getInputContent);
     } else {
+        if (publishOptions.appId) {
+            throw new Error("AppID is only supported in remote client mode. Please remove 'app_id' or run the server in remote client mode with --server <server_url>.");
+        }
         mediaId = await renderAndPublish(content, publishOptions, getInputContent);
     }
 

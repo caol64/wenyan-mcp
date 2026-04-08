@@ -237,14 +237,26 @@ flowchart LR
     "wenyan-mcp": {
       "command": "wenyan-mcp",
       "args": ["--server", "https://api.example.com", "--api-key", "your-api-key"]
-      "env": {
-        "WECHAT_APP_ID": "your_app_id",
-        "WECHAT_APP_SECRET": "your_app_secret"
-      }
     }
   }
 }
 ```
+
+## 多公众号发布（进阶）
+
+> [!IMPORTANT]
+>
+> 必须使用`server`模式才能使用多公众号发布功能。
+
+步骤：
+
+- 首先部署`server`
+- 在`server`端配置多个微信凭据，参考[文档](https://github.com/caol64/wenyan-cli)
+- 让`MCP 客户端`连接`server`
+
+对AI说
+
+> 使用phycat主题将这篇文章发布到微信公众号(your_app_id)：`./tests/publish.md`
 
 ## Docker 部署
 

@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "types": ["node"],
     "target": "ESNext",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
@@ -16,5 +17,5 @@
     "declarationDir": "dist/types",
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "tests"]
 }

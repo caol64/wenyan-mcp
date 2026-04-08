@@ -44,7 +44,7 @@ async function runMcp() {
 
     const transport = new StdioClientTransport({
         command: "node",
-        args: ["--env-file", ".env.test", "dist/index.js", "--server", "http://localhost:3000"],
+        args: ["dist/index.js", "--server", "http://localhost:3000"],
     });
 
     const client = new Client(
@@ -84,7 +84,7 @@ async function runMcp() {
         // let content = await fs.readFile(path.resolve("./tests/publish.md"), "utf-8");
         // content = content.replace(/cover: wenyan.jpg/g, `cover: ${path.resolve("./tests/wenyan.jpg")}`);
         // content = content.replace(/result_image.jpg/g, path.resolve("./tests/result_image.jpg"));
-        const userPrompt = { role: "user", content: `使用phycat主题将这篇文章发布到微信公众号：\n\n${content}` };
+        const userPrompt = { role: "user", content: `使用phycat主题将这篇文章发布到微信公众号(example_app_id)：\n\n${content}` };
         const response = await llmClient.chat.completions.create({
             model: LLM_MODEL,
             messages: [userPrompt],

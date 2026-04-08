@@ -50,7 +50,8 @@ export function createServer(): Server {
                 const contentUrl = String(args.content_url || "");
                 const file = String(args.file || "");
                 const themeId = String(args.theme_id || "");
-                return await publishArticle(contentUrl, file, content, themeId, pkg.version);
+                const appId = String(args.app_id || "");
+                return await publishArticle(contentUrl, file, content, themeId, appId, pkg.version);
             } else if (request.params.name === "list_themes") {
                 const themes = await listThemes();
                 const builtinThemes = themes.filter((theme) => theme.isBuiltin);
