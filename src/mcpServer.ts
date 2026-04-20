@@ -2,6 +2,23 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { LIST_THEMES_SCHEMA, REGISTER_THEME_SCHEMA, REMOVE_THEME_SCHEMA } from "./theme.js";
 import { PUBLISH_ARTICLE_SCHEMA, publishArticle } from "./publish.js";
+
+function parseCommentFlag(value: unknown): 0 | 1 | undefined {
+    return value === 0 ? 0 : value === 1 ? 1 : undefined;
+}
+
+export function parsePublishArticleArgs(args: Record<string, unknown>, clientVersion: string) {
+    return {
+        content: String(args.content || ""),
+        contentUrl: String(args.content_url || ""),
+        file: String(args.file || ""),
+        themeId: String(args.theme_id || ""),
+        appId: String(args.app_id || ""),
+        clientVersion,
+        needOpenComment: parseCommentFlag(args.need_open_comment),
+        onlyFansCanComment: parseCommentFlag(args.only_fans_can_comment),
+    };
+}
 import pkg from "../package.json" with { type: "json" };
 import { buildMcpResponse, globalStates } from "./utils.js";
 import { addTheme, listThemes, removeTheme } from "@wenyan-md/core/wrapper";
@@ -45,13 +62,17 @@ export function createServer(): Server {
                 if (globalStates.isClientMode && !globalStates.serverUrl) {
                     throw new Error("Missing server URL. Usage: --server <server_url>");
                 }
-                const args = request.params.arguments || {};
-                const content = String(args.content || "");
-                const contentUrl = String(args.content_url || "");
-                const file = String(args.file || "");
-                const themeId = String(args.theme_id || "");
-                const appId = String(args.app_id || "");
-                return await publishArticle(contentUrl, file, content, themeId, appId, pkg.version);
+                const args = parsePublishArticleArgs(request.params.arguments || {}, pkg.version);
+                return await publishArticle(
+                    args.contentUrl,
+                    args.file,
+                    args.content,
+                    args.themeId,
+                    args.appId,
+                    args.clientVersion,
+                    args.needOpenComment,
+                    args.onlyFansCanComment,
+                );
             } else if (request.params.name === "list_themes") {
                 const themes = await listThemes();
                 const builtinThemes = themes.filter((theme) => theme.isBuiltin);
