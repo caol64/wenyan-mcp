@@ -1,6 +1,17 @@
 import { renderAndPublish, renderAndPublishToServer } from "@wenyan-md/core/wrapper";
 import { buildMcpResponse, getInputContent, globalStates } from "./utils.js";
 
+export interface PublishArticleInput {
+    contentUrl: string;
+    file: string;
+    content: string;
+    themeId: string;
+    appId?: string;
+    clientVersion?: string;
+    needOpenComment?: 0 | 1;
+    onlyFansCanComment?: 0 | 1;
+}
+
 export const PUBLISH_ARTICLE_SCHEMA = {
     name: "publish_article",
     description: "Format a Markdown article using a selected theme and publish it to '微信公众号'.",
@@ -32,24 +43,60 @@ export const PUBLISH_ARTICLE_SCHEMA = {
                 description:
                     "AppID for the WeChat MP platform ('微信公众号').",
             },
+            need_open_comment: {
+                type: "integer",
+                enum: [0, 1],
+                description:
+                    "Whether to enable comments on the draft. 1 enables comments; 0 disables them.",
+            },
+            only_fans_can_comment: {
+                type: "integer",
+                enum: [0, 1],
+                description:
+                    "Whether only followers can comment. This only takes effect when need_open_comment is 1.",
+            },
         },
     },
 } as const;
 
-export async function publishArticle(contentUrl: string, file: string, content: string, themeId: string, appId?: string, clientVersion?: string) {
-    let mediaId = "";
-    const publishOptions = {
-        file: file ? file : contentUrl,
-        theme: themeId,
+export function buildPublishOptions(input: PublishArticleInput) {
+    return {
+        file: input.file ? input.file : input.contentUrl,
+        theme: input.themeId,
         highlight: "solarized-light",
         macStyle: true,
         footnote: true,
         server: globalStates.serverUrl,
         apiKey: globalStates.apiKey,
-        clientVersion,
+        clientVersion: input.clientVersion,
         disableStdin: true,
-        appId: appId ? appId : undefined,
+        appId: input.appId ? input.appId : undefined,
+        need_open_comment: input.needOpenComment,
+        only_fans_can_comment: input.needOpenComment === 1 ? input.onlyFansCanComment : undefined,
     };
+}
+
+export async function publishArticle(
+    contentUrl: string,
+    file: string,
+    content: string,
+    themeId: string,
+    appId?: string,
+    clientVersion?: string,
+    needOpenComment?: 0 | 1,
+    onlyFansCanComment?: 0 | 1,
+) {
+    let mediaId = "";
+    const publishOptions = buildPublishOptions({
+        contentUrl,
+        file,
+        content,
+        themeId,
+        appId,
+        clientVersion,
+        needOpenComment,
+        onlyFansCanComment,
+    });
     if(globalStates.isClientMode) {
         mediaId = await renderAndPublishToServer(content, publishOptions, getInputContent);
     } else {
