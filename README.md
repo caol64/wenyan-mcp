@@ -185,12 +185,22 @@ source_url: http://
 
 字段说明：
 
--   `title` 文章标题（必填）
--   `cover` 文章封面
-    -   本地路径或网络图片
-    -   如果正文中已有图片，可省略
--   `author` 文章作者
--   `source_url` 原文地址
+| 字段         | 必填 | 说明                |
+| ---------- | -- | ----------------- |
+| title      | ✅  | 文章标题              |
+| cover      | ❌  | 封面图片（本地路径或网络 URL） |
+| author     | ❌  | 作者                |
+| source_url | ❌  | 原文链接              |
+| type       | ❌  | 文章类型，设为 `image` 表示图片消息（小绿书） |
+| image_list | ❌  | 图片路径列表（小绿书专用，最多 20 张） |
+| need_open_comment | ❌  | 是否打开评论 |
+| only_fans_can_comment | ❌  | 是否仅粉丝可评论 |
+
+说明：
+
+* 如果未指定 cover，将自动使用正文第一张图片作为封面
+* cover 支持本地路径和网络 URL
+* `type` 和 `image_list` 用于图片消息发布
 
 **[示例文章](tests/publish.md)**
 
@@ -201,6 +211,43 @@ source_url: http://
 - 本地硬盘绝对路径（如：`/Users/xxx/image.jpg`）
 - 网络路径（如：`https://example.com/image.jpg`）
 - 当前文章的相对路径（如：`./assets/image.png`）
+
+## 发布图片消息（小绿书）
+
+发布图片消息与发布图文消息的区别在于 frontmatter 中需要指定图片列表。支持两种方式：
+
+### 方式一：使用 type: image（推荐）
+
+在 frontmatter 中设置 `type: image`，CLI 会自动从正文中提取所有图片：
+
+```md
+---
+title: 人勤春来早，读书正当时
+type: image
+---
+
+![](./1.jpeg)
+![](./2.jpeg)
+![](./3.jpeg)
+```
+
+### 方式二：手动指定 image_list
+
+直接在 frontmatter 中列出图片路径：
+
+```md
+---
+title: 人勤春来早，读书正当时
+image_list:
+  - ./1.jpeg
+  - ./2.jpeg
+  - ./3.jpeg
+  - ./4.jpeg
+  - ./5.jpeg
+---
+```
+
+`image_list` 最多 20 张，首张即为封面。
 
 ## Server 模式
 

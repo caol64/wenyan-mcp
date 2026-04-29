@@ -37,7 +37,6 @@ export const PUBLISH_ARTICLE_SCHEMA = {
 } as const;
 
 export async function publishArticle(contentUrl: string, file: string, content: string, themeId: string, appId?: string, clientVersion?: string) {
-    let mediaId = "";
     const publishOptions = {
         file: file ? file : contentUrl,
         theme: themeId,
@@ -50,6 +49,7 @@ export async function publishArticle(contentUrl: string, file: string, content: 
         disableStdin: true,
         appId: appId ? appId : undefined,
     };
+    let mediaId: string;
     if(globalStates.isClientMode) {
         mediaId = await renderAndPublishToServer(content, publishOptions, getInputContent);
     } else {
