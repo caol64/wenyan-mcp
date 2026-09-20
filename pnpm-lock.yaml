@@ -12,8 +12,8 @@ importers:
         specifier: 0.6.0
         version: 0.6.0
       '@wenyan-md/core':
-        specifier: ^3.0.9
-        version: 3.0.9(form-data-encoder@4.1.0)(formdata-node@6.0.3)(jsdom@27.4.0(@noble/hashes@1.8.0))
+        specifier: ^3.0.12
+        version: 3.0.12(form-data-encoder@4.1.0)(formdata-node@6.0.3)(jsdom@27.4.0(@noble/hashes@1.8.0))
       form-data-encoder:
         specifier: ^4.1.0
         version: 4.1.0
@@ -985,6 +985,7 @@ packages:
     resolution: {integrity: sha512-3AHmtQq/ppNuUspKAlvA8HtLybkDflkMuLK4DPo77DfthRb71V84/c4MlWJXixZz4uruIH4uaa07IqoAkG64fg==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-win32-arm64-msvc@4.59.0':
     resolution: {integrity: sha512-V5B6mG7OrGTwnxaNUzZTDTjDS7F75PO1ae6MJYdiMu60sq0CqN5CVeVsbhPxalupvTX8gXVSU9gq+Rx1/hvu6A==}
@@ -1187,8 +1188,8 @@ packages:
   '@upsetjs/venn.js@2.0.0':
     resolution: {integrity: sha512-WbBhLrooyePuQ1VZxrJjtLvTc4NVfpOyKx0sKqioq9bX1C1m7Jgykkn8gLrtwumBioXIqam8DLxp88Adbue6Hw==}
 
-  '@wenyan-md/core@3.0.9':
-    resolution: {integrity: sha512-lKwXzolCRjOFVsvSdJigd8JVfXt1nOoLnkxPHDFPtYAK7YQVmXBr/2qEzbqQ1SlxcSznQDviEdCrvB/2nlx6XQ==}
+  '@wenyan-md/core@3.0.12':
+    resolution: {integrity: sha512-iSQUZl3ouSrkW7eqtkpxVvxSr4vcpq8KisZMKrW0bRfWH2m9gKuoaRRrB0yk9cqzoEY0H8SwkRj+W0g/44ZqQw==}
     peerDependencies:
       form-data-encoder: ^4.1.0
       formdata-node: ^6.0.3
@@ -3888,7 +3889,7 @@ snapshots:
       d3-selection: 3.0.0
       d3-transition: 3.0.1(d3-selection@3.0.0)
 
-  '@wenyan-md/core@3.0.9(form-data-encoder@4.1.0)(formdata-node@6.0.3)(jsdom@27.4.0(@noble/hashes@1.8.0))':
+  '@wenyan-md/core@3.0.12(form-data-encoder@4.1.0)(formdata-node@6.0.3)(jsdom@27.4.0(@noble/hashes@1.8.0))':
     dependencies:
       css-tree: 3.2.1
       front-matter: 4.0.2
